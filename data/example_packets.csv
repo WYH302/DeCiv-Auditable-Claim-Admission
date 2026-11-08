@@ -1,0 +1,3 @@
+challenge_id,claim_text,evidence_text,source_url
+FEV_0003__v0,Robert Redford is a performer.,FEVER gold evidence references: Robert Redford sentence 0 | Robert Redford sentence 4 | Robert Redford sentence 5,https://fever.ai/dataset/fever.html
+FEV_0003__v1,Robert Redford is a performer.,FEVER gold evidence references: Robert Redford sentence 0 | Robert Redford sentence 4 | Robert Redford sentence 5,https://example.invalid/mismatched-control

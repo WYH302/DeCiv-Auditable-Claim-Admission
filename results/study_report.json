@@ -1,0 +1,714 @@
+{
+  "n": 1800,
+  "parents": 450,
+  "votes": 7200,
+  "sources": {
+    "FEVER": 1040,
+    "TruthfulQA": 320,
+    "HotpotQA": 320,
+    "WikipediaRevision": 120
+  },
+  "semantic_counts": {
+    "insufficient_evidence": 160,
+    "partially_supported": 510,
+    "contradicted": 790,
+    "supported": 340
+  },
+  "policy_reference_counts": {
+    "defer": 390,
+    "revise": 450,
+    "reject": 790,
+    "accept": 170
+  },
+  "legacy_reference_differences": 200,
+  "checks": {
+    "edge_cases": "passed",
+    "shared_input_hashes": "passed",
+    "source_parent_disjointness": "passed",
+    "test_labels_excluded_from_prediction_signature": "passed",
+    "proxy_observations_replaced_with_zeros": true,
+    "same_votes_for_all_methods": true,
+    "policy_eligibility_checks": "passed"
+  },
+  "fold_states": [
+    {
+      "held_out_source": "FEVER",
+      "n_train": 760,
+      "n_test": 1040,
+      "reliability": {
+        "SYN_SEM_01": 0.7204724409448819,
+        "SYN_SEM_02": 0.7020997375328084,
+        "SYN_SEM_03": 0.7073490813648294,
+        "SYN_SEM_04": 0.6916010498687664
+      },
+      "dawid_skene": {
+        "payload": {
+          "algorithm": "four_class_dawid_skene_em",
+          "estimator_id": "semantic_dawid_skene_v1",
+          "fitted_state": {
+            "confusion": [
+              [
+                [
+                  "0x1.768417edaf2e9p-1",
+                  "0x1.a890774b3989cp-6",
+                  "0x1.15f0415374596p-4",
+                  "0x1.65e570b621e7fp-3"
+                ],
+                [
+                  "0x1.8b00d11c8faa3p-4",
+                  "0x1.77755e0611c38p-1",
+                  "0x1.8964e1ce16af0p-4",
+                  "0x1.2fef5ce4cb8afp-4"
+                ],
+                [
+                  "0x1.94a5a2c5148c1p-4",
+                  "0x1.c457ae878fe57p-4",
+                  "0x1.75970192936bcp-1",
+                  "0x1.f495443d80600p-5"
+                ],
+                [
+                  "0x1.2c7560976f83cp-1",
+                  "0x1.a67237e58a1d6p-2",
+                  "0x1.2c342f23e63f0p-11",
+                  "0x1.9d9a809cfef6fp-15"
+                ]
+              ],
+              [
+                [
+                  "0x1.6a16dbf81ef29p-1",
+                  "0x1.1cd46127f06a2p-4",
+                  "0x1.ba881a58e0ec2p-4",
+                  "0x1.d7eca4be37153p-4"
+                ],
+                [
+                  "0x1.8fa38b30ea76ep-4",
+                  "0x1.7323576411264p-1",
+                  "0x1.c001ab9552db8p-4",
+                  "0x1.17400e19397bdp-4"
+                ],
+                [
+                  "0x1.fd10a1abc3408p-4",
+                  "0x1.00de4573cb1c6p-3",
+                  "0x1.34ccf57c003bdp-1",
+                  "0x1.2d6593c652542p-3"
+                ],
+                [
+                  "0x1.0ec8b9c333991p-2",
+                  "0x1.473d47f81b110p-1",
+                  "0x1.be072a3e72870p-12",
+                  "0x1.8934d2081aa13p-4"
+                ]
+              ],
+              [
+                [
+                  "0x1.7458ba5f2f776p-1",
+                  "0x1.17842c01d2597p-4",
+                  "0x1.cc12d2b2aaf15p-6",
+                  "0x1.6958a62c0397dp-3"
+                ],
+                [
+                  "0x1.439767a281154p-4",
+                  "0x1.7ad00022f7b28p-1",
+                  "0x1.fa183dc52ebbcp-4",
+                  "0x1.d7a0b30125356p-5"
+                ],
+                [
+                  "0x1.50276379e37edp-4",
+                  "0x1.e0e953cd6780cp-4",
+                  "0x1.723981abc1719p-1",
+                  "0x1.3d233b5aa9742p-4"
+                ],
+                [
+                  "0x1.29c0b0da5c564p-1",
+                  "0x1.182574429c58fp-12",
+                  "0x1.721e3ca7ea142p-13",
+                  "0x1.ac0a5126a1af3p-2"
+                ]
+              ],
+              [
+                [
+                  "0x1.7f62a883f85e9p-1",
+                  "0x1.07782c6509a73p-3",
+                  "0x1.d2b15b0f37212p-16",
+                  "0x1.f5dd380078c99p-4"
+                ],
+                [
+                  "0x1.309316d1fc74fp-3",
+                  "0x1.6eb742159287ep-1",
+                  "0x1.23c4a65206145p-4",
+                  "0x1.055b1b5d6cc2fp-4"
+                ],
+                [
+                  "0x1.ec385aa255e5fp-4",
+                  "0x1.680831e6f476ap-3",
+                  "0x1.3f2a9172093d6p-1",
+                  "0x1.4a62b5ff77420p-4"
+                ],
+                [
+                  "0x1.cfc7d90d38b00p-13",
+                  "0x1.be87ade0f79f2p-12",
+                  "0x1.7fba6efa4c1bap-1",
+                  "0x1.ffc30e499bc7cp-3"
+                ]
+              ]
+            ],
+            "converged": true,
+            "final_log_likelihood": "-0x1.ad4226978c347p+11",
+            "iterations": 178,
+            "priors": [
+              "0x1.6f5eb726bcdd5p-3",
+              "0x1.c2313ea61b7dap-2",
+              "0x1.6945844be426dp-2",
+              "0x1.cd9e17aa1ece4p-6"
+            ],
+            "validator_axis": [
+              "SYN_SEM_01",
+              "SYN_SEM_02",
+              "SYN_SEM_03",
+              "SYN_SEM_04"
+            ]
+          },
+          "parameters": {
+            "confusion_smoothing": "0x1.0624dd2f1a9fcp-10",
+            "convergence_rule": "absolute_updated_minus_previous_log_likelihood",
+            "convergence_tolerance": "0x1.5798ee2308c3ap-27",
+            "initial_confusion_diagonal": "0x1.6666666666666p-1",
+            "initial_confusion_off_diagonal": "0x1.999999999999ap-4",
+            "initial_priors": [
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2"
+            ],
+            "maximum_iterations": 200
+          },
+          "prediction_policy": {
+            "unseen_validator": "ignore_likelihood_term",
+            "zero_vote": "fitted_priors"
+          },
+          "semantic_axis": [
+            "supported",
+            "contradicted",
+            "partially_supported",
+            "insufficient_evidence"
+          ],
+          "state_schema": "deciv2.r12.semantic_estimator_state.v1"
+        },
+        "schema": "deciv2.r12.v1",
+        "type": "semantic_estimator_state"
+      },
+      "ds_converged": true,
+      "ds_iterations": 178
+    },
+    {
+      "held_out_source": "HotpotQA",
+      "n_train": 1480,
+      "n_test": 320,
+      "reliability": {
+        "SYN_SEM_01": 0.7004048582995951,
+        "SYN_SEM_02": 0.7031039136302294,
+        "SYN_SEM_03": 0.7091767881241565,
+        "SYN_SEM_04": 0.7294197031039136
+      },
+      "dawid_skene": {
+        "payload": {
+          "algorithm": "four_class_dawid_skene_em",
+          "estimator_id": "semantic_dawid_skene_v1",
+          "fitted_state": {
+            "confusion": [
+              [
+                [
+                  "0x1.539c76c4cfb74p-1",
+                  "0x1.24e5da47d4bc4p-4",
+                  "0x1.16bc2416961c0p-3",
+                  "0x1.085f13b240a92p-3"
+                ],
+                [
+                  "0x1.90191c7ac32aap-4",
+                  "0x1.68f43d39dcc46p-1",
+                  "0x1.b9d47c23b9dc7p-4",
+                  "0x1.6e707d929cd5cp-4"
+                ],
+                [
+                  "0x1.a4b9fb6161d00p-4",
+                  "0x1.9dbc7d789f05ap-4",
+                  "0x1.659748d7428e7p-1",
+                  "0x1.90cf406beab75p-4"
+                ],
+                [
+                  "0x1.d24f7cd57746bp-4",
+                  "0x1.94766c63437bep-5",
+                  "0x1.3717a412fa63ap-4",
+                  "0x1.858bb51cbd930p-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.657769ff44013p-1",
+                  "0x1.b67f366ef78cfp-4",
+                  "0x1.77c6f14b95de6p-4",
+                  "0x1.a5fe884b528b4p-4"
+                ],
+                [
+                  "0x1.74d186b684a2cp-4",
+                  "0x1.5c72c060a5c0cp-1",
+                  "0x1.d25bd02b6d4cep-4",
+                  "0x1.d53ca618e00aap-4"
+                ],
+                [
+                  "0x1.eaff7563d70f5p-4",
+                  "0x1.de848daf43460p-4",
+                  "0x1.51b6b4f1be317p-1",
+                  "0x1.a8c6555ef41f8p-4"
+                ],
+                [
+                  "0x1.4b973b66e4d90p-5",
+                  "0x1.ac851f2fe33cfp-3",
+                  "0x1.9ede11ce84b7ap-17",
+                  "0x1.8023a59f8714bp-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.a3e9202e02ac8p-1",
+                  "0x1.efde66c85e4a1p-5",
+                  "0x1.21bcde5995058p-4",
+                  "0x1.8e15d9a44ce27p-5"
+                ],
+                [
+                  "0x1.766e40124a93dp-4",
+                  "0x1.6d3adec14ff9fp-1",
+                  "0x1.9d60099b52dbfp-4",
+                  "0x1.825ac047e2c0ap-4"
+                ],
+                [
+                  "0x1.6939ea4996357p-4",
+                  "0x1.cd30ca2236a83p-4",
+                  "0x1.654b0a576415ep-1",
+                  "0x1.9f3cf8d912734p-4"
+                ],
+                [
+                  "0x1.2b57da6a38c5ep-3",
+                  "0x1.ba3afc2fe98d1p-5",
+                  "0x1.d392cad7e4da0p-5",
+                  "0x1.7c4d2cf4f4e81p-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.96ccd9df45ae0p-1",
+                  "0x1.b3b62469d3596p-5",
+                  "0x1.8f5c344892f4ep-4",
+                  "0x1.c0c3d510abdcfp-5"
+                ],
+                [
+                  "0x1.abc89b519f525p-4",
+                  "0x1.6f03665f8063dp-1",
+                  "0x1.6a68971d73602p-4",
+                  "0x1.71b39a94ea2edp-4"
+                ],
+                [
+                  "0x1.812a26b04f0ddp-4",
+                  "0x1.a624edf7eca8dp-4",
+                  "0x1.6dfe67b442aeep-1",
+                  "0x1.68bdadb5aed22p-4"
+                ],
+                [
+                  "0x1.5bfb628064c73p-4",
+                  "0x1.12a445f6ce8d6p-4",
+                  "0x1.b58e8635fefddp-4",
+                  "0x1.7b7a3a2a59b5bp-1"
+                ]
+              ]
+            ],
+            "converged": true,
+            "final_log_likelihood": "-0x1.a8aef05d83dfdp+12",
+            "iterations": 70,
+            "priors": [
+              "0x1.d05de39bb7c97p-4",
+              "0x1.f907a707fa1dbp-2",
+              "0x1.2fac22d740451p-2",
+              "0x1.8cd2f4e75eabfp-4"
+            ],
+            "validator_axis": [
+              "SYN_SEM_01",
+              "SYN_SEM_02",
+              "SYN_SEM_03",
+              "SYN_SEM_04"
+            ]
+          },
+          "parameters": {
+            "confusion_smoothing": "0x1.0624dd2f1a9fcp-10",
+            "convergence_rule": "absolute_updated_minus_previous_log_likelihood",
+            "convergence_tolerance": "0x1.5798ee2308c3ap-27",
+            "initial_confusion_diagonal": "0x1.6666666666666p-1",
+            "initial_confusion_off_diagonal": "0x1.999999999999ap-4",
+            "initial_priors": [
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2"
+            ],
+            "maximum_iterations": 200
+          },
+          "prediction_policy": {
+            "unseen_validator": "ignore_likelihood_term",
+            "zero_vote": "fitted_priors"
+          },
+          "semantic_axis": [
+            "supported",
+            "contradicted",
+            "partially_supported",
+            "insufficient_evidence"
+          ],
+          "state_schema": "deciv2.r12.semantic_estimator_state.v1"
+        },
+        "schema": "deciv2.r12.v1",
+        "type": "semantic_estimator_state"
+      },
+      "ds_converged": true,
+      "ds_iterations": 70
+    },
+    {
+      "held_out_source": "TruthfulQA",
+      "n_train": 1480,
+      "n_test": 320,
+      "reliability": {
+        "SYN_SEM_01": 0.7004048582995951,
+        "SYN_SEM_02": 0.7010796221322537,
+        "SYN_SEM_03": 0.6983805668016194,
+        "SYN_SEM_04": 0.7152496626180836
+      },
+      "dawid_skene": {
+        "payload": {
+          "algorithm": "four_class_dawid_skene_em",
+          "estimator_id": "semantic_dawid_skene_v1",
+          "fitted_state": {
+            "confusion": [
+              [
+                [
+                  "0x1.51eec9f09c9a5p-1",
+                  "0x1.465efe7269be0p-4",
+                  "0x1.f26c587713ea3p-4",
+                  "0x1.1bdf2cc8cec28p-3"
+                ],
+                [
+                  "0x1.53980dad103acp-4",
+                  "0x1.74ba04ef42353p-1",
+                  "0x1.7c2f298d1234fp-4",
+                  "0x1.8a68a14bcbe63p-4"
+                ],
+                [
+                  "0x1.90ab1fa3edb7bp-4",
+                  "0x1.bd0384be71dccp-4",
+                  "0x1.660ec621a6112p-1",
+                  "0x1.81db2a906fe25p-4"
+                ],
+                [
+                  "0x1.d9446eb0378a9p-6",
+                  "0x1.070c16e5411f1p-5",
+                  "0x1.259f594a11cf6p-4",
+                  "0x1.bc112ff2e7f7cp-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.4aae2b86c0fc9p-1",
+                  "0x1.fb3c375c1d62bp-4",
+                  "0x1.916d1f66ef2a8p-4",
+                  "0x1.0ef2a68375c70p-3"
+                ],
+                [
+                  "0x1.6400a006de9a4p-4",
+                  "0x1.658a01f73ab24p-1",
+                  "0x1.7c937c7840955p-4",
+                  "0x1.f31bd3c70b3e6p-4"
+                ],
+                [
+                  "0x1.e09e8ed053a0dp-4",
+                  "0x1.bb5411f02a7f4p-4",
+                  "0x1.515b8c2f318ddp-1",
+                  "0x1.d930fdc5f5718p-4"
+                ],
+                [
+                  "0x1.44d29ecdca66cp-5",
+                  "0x1.760f1e0b61d70p-3",
+                  "0x1.a8714db5503aap-7",
+                  "0x1.878d495975a2fp-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.7c8aff7db798cp-1",
+                  "0x1.2a4a386f568a6p-4",
+                  "0x1.3bc376a364dcfp-4",
+                  "0x1.b59a54ff87d2ap-4"
+                ],
+                [
+                  "0x1.77ea68f4967f1p-4",
+                  "0x1.710aa03747675p-1",
+                  "0x1.5c0fa625c226cp-4",
+                  "0x1.a3b0ef2b6c1fbp-4"
+                ],
+                [
+                  "0x1.693228a517902p-4",
+                  "0x1.ee6fa02156c9fp-4",
+                  "0x1.6828905598ef7p-1",
+                  "0x1.6719b48cca2a1p-4"
+                ],
+                [
+                  "0x1.b71a4561e21cbp-4",
+                  "0x1.cd9f1e6d017ebp-5",
+                  "0x1.bcb3072fabf23p-5",
+                  "0x1.907794f9f8e55p-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.603b81701cf45p-1",
+                  "0x1.b2347e9419060p-4",
+                  "0x1.91ee04c4901dfp-4",
+                  "0x1.ba0171266f39bp-4"
+                ],
+                [
+                  "0x1.d2645a89b2035p-4",
+                  "0x1.5e2fe6e8e6874p-1",
+                  "0x1.61395974d5b1dp-4",
+                  "0x1.dae314ba4410fp-4"
+                ],
+                [
+                  "0x1.7eed635ef28abp-4",
+                  "0x1.edd678e7dd657p-4",
+                  "0x1.649149489bfb0p-1",
+                  "0x1.6eb1d97450385p-4"
+                ],
+                [
+                  "0x1.73d9bf5f30e8ap-4",
+                  "0x1.247960a20bc34p-4",
+                  "0x1.35cf07f8a3940p-4",
+                  "0x1.863bbb00c3f80p-1"
+                ]
+              ]
+            ],
+            "converged": true,
+            "final_log_likelihood": "-0x1.b3723086cd74bp+12",
+            "iterations": 60,
+            "priors": [
+              "0x1.fb3dee7c95fe8p-3",
+              "0x1.77f7551d38e93p-2",
+              "0x1.328f55f1547f6p-2",
+              "0x1.5f6976cc9e60dp-4"
+            ],
+            "validator_axis": [
+              "SYN_SEM_01",
+              "SYN_SEM_02",
+              "SYN_SEM_03",
+              "SYN_SEM_04"
+            ]
+          },
+          "parameters": {
+            "confusion_smoothing": "0x1.0624dd2f1a9fcp-10",
+            "convergence_rule": "absolute_updated_minus_previous_log_likelihood",
+            "convergence_tolerance": "0x1.5798ee2308c3ap-27",
+            "initial_confusion_diagonal": "0x1.6666666666666p-1",
+            "initial_confusion_off_diagonal": "0x1.999999999999ap-4",
+            "initial_priors": [
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2"
+            ],
+            "maximum_iterations": 200
+          },
+          "prediction_policy": {
+            "unseen_validator": "ignore_likelihood_term",
+            "zero_vote": "fitted_priors"
+          },
+          "semantic_axis": [
+            "supported",
+            "contradicted",
+            "partially_supported",
+            "insufficient_evidence"
+          ],
+          "state_schema": "deciv2.r12.semantic_estimator_state.v1"
+        },
+        "schema": "deciv2.r12.v1",
+        "type": "semantic_estimator_state"
+      },
+      "ds_converged": true,
+      "ds_iterations": 60
+    },
+    {
+      "held_out_source": "WikipediaRevision",
+      "n_train": 1680,
+      "n_test": 120,
+      "reliability": {
+        "SYN_SEM_01": 0.6997621878715814,
+        "SYN_SEM_02": 0.7051129607609988,
+        "SYN_SEM_03": 0.7033293697978596,
+        "SYN_SEM_04": 0.7187871581450654
+      },
+      "dawid_skene": {
+        "payload": {
+          "algorithm": "four_class_dawid_skene_em",
+          "estimator_id": "semantic_dawid_skene_v1",
+          "fitted_state": {
+            "confusion": [
+              [
+                [
+                  "0x1.58e9466d517c4p-1",
+                  "0x1.35f1186b2efebp-4",
+                  "0x1.d1355efa5e889p-4",
+                  "0x1.18c7aa97f34b5p-3"
+                ],
+                [
+                  "0x1.7c22468e69bf6p-4",
+                  "0x1.6d9c03e7d9a24p-1",
+                  "0x1.ca29d79b8ece1p-4",
+                  "0x1.4cd3c2973a60ap-4"
+                ],
+                [
+                  "0x1.9224223e80742p-4",
+                  "0x1.bf331a471ec7cp-4",
+                  "0x1.654436e66dfbcp-1",
+                  "0x1.84870c46f0e64p-4"
+                ],
+                [
+                  "0x1.aa4b1a33cc9aap-5",
+                  "0x1.70f470af81194p-5",
+                  "0x1.2d36b19eb5c8bp-4",
+                  "0x1.a8a5311df46bap-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.51a330eeaa10ap-1",
+                  "0x1.f89872d90cd2bp-4",
+                  "0x1.6f6f15fe073f6p-4",
+                  "0x1.056f77d9cdb49p-3"
+                ],
+                [
+                  "0x1.767308d2522d8p-4",
+                  "0x1.626fdd11e2c0fp-1",
+                  "0x1.b9093e18b9fbfp-4",
+                  "0x1.bd04d085ddcf4p-4"
+                ],
+                [
+                  "0x1.03ea146698a18p-3",
+                  "0x1.7caeec8202d65p-4",
+                  "0x1.5ac70f339d07ep-1",
+                  "0x1.a5447113e3a7ap-4"
+                ],
+                [
+                  "0x1.3a333ff2ce4cfp-5",
+                  "0x1.989786f84a825p-3",
+                  "0x1.034732b80c158p-6",
+                  "0x1.7e1cb0ad0019fp-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.81baafbcecbb4p-1",
+                  "0x1.1986d74e0a58bp-4",
+                  "0x1.29b6e91eb475ep-4",
+                  "0x1.aeecc1abdb575p-4"
+                ],
+                [
+                  "0x1.7990cb3b22b2bp-4",
+                  "0x1.6c8fb041b8d59p-1",
+                  "0x1.b05ebbbc4f9a6p-4",
+                  "0x1.7192f6fac706dp-4"
+                ],
+                [
+                  "0x1.5abf784650079p-4",
+                  "0x1.76f10c59ef3acp-4",
+                  "0x1.73dda2f793dbep-1",
+                  "0x1.8f6263a321debp-4"
+                ],
+                [
+                  "0x1.e3a2b50758a1fp-4",
+                  "0x1.c4624d4cc95c1p-5",
+                  "0x1.c1e14750c2eaep-5",
+                  "0x1.8b2770153c275p-1"
+                ]
+              ],
+              [
+                [
+                  "0x1.6368f6f271808p-1",
+                  "0x1.9ba3309562971p-4",
+                  "0x1.972c2fe2bc416p-4",
+                  "0x1.b1e8e7f455236p-4"
+                ],
+                [
+                  "0x1.cb9672f0dee6cp-4",
+                  "0x1.66331bc17d288p-1",
+                  "0x1.759c9ef329610p-4",
+                  "0x1.8d3410100e745p-4"
+                ],
+                [
+                  "0x1.77fb0db81df70p-4",
+                  "0x1.e7f108123016fp-4",
+                  "0x1.678caf33c4016p-1",
+                  "0x1.63ae709791e73p-4"
+                ],
+                [
+                  "0x1.77b71c4a757c0p-4",
+                  "0x1.1cc575472c73fp-4",
+                  "0x1.6ec988c35c36ep-4",
+                  "0x1.7f973cb5603b2p-1"
+                ]
+              ]
+            ],
+            "converged": true,
+            "final_log_likelihood": "-0x1.e7fea00de5151p+12",
+            "iterations": 76,
+            "priors": [
+              "0x1.aeff5f80b90c9p-3",
+              "0x1.d8ad846df314ep-2",
+              "0x1.faeca96facc47p-3",
+              "0x1.4971dc67680acp-4"
+            ],
+            "validator_axis": [
+              "SYN_SEM_01",
+              "SYN_SEM_02",
+              "SYN_SEM_03",
+              "SYN_SEM_04"
+            ]
+          },
+          "parameters": {
+            "confusion_smoothing": "0x1.0624dd2f1a9fcp-10",
+            "convergence_rule": "absolute_updated_minus_previous_log_likelihood",
+            "convergence_tolerance": "0x1.5798ee2308c3ap-27",
+            "initial_confusion_diagonal": "0x1.6666666666666p-1",
+            "initial_confusion_off_diagonal": "0x1.999999999999ap-4",
+            "initial_priors": [
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2",
+              "0x1.0000000000000p-2"
+            ],
+            "maximum_iterations": 200
+          },
+          "prediction_policy": {
+            "unseen_validator": "ignore_likelihood_term",
+            "zero_vote": "fitted_priors"
+          },
+          "semantic_axis": [
+            "supported",
+            "contradicted",
+            "partially_supported",
+            "insufficient_evidence"
+          ],
+          "state_schema": "deciv2.r12.semantic_estimator_state.v1"
+        },
+        "schema": "deciv2.r12.v1",
+        "type": "semantic_estimator_state"
+      },
+      "ds_converged": true,
+      "ds_iterations": 76
+    }
+  ],
+  "spec_hash": "71121737fe69649ce416bf0b9c2963a7f454d882a38c630c01d1df4744042a66",
+  "synthetic_vote_model": "four independent validators, each diagonal 0.7 and off-diagonal 0.1, target-conditioned; one frozen vote realization; confidence absent",
+  "evidence_boundary": "controlled policy-recovery simulation, not prospective factual verification or a human study"
+}

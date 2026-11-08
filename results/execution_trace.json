@@ -1,0 +1,134 @@
+[
+  {
+    "illustration_selection": "first lexicographic supported parent with unanimous supported votes in intact and dropout variants; selected for explanation, not efficacy evidence",
+    "packet_id": "FEV_0003__v0",
+    "parent_id": "FEV_0003",
+    "claim": "Robert Redford is a performer.",
+    "evidence": "FEVER gold evidence references: Robert Redford sentence 0 | Robert Redford sentence 4 | Robert Redford sentence 5",
+    "source_url": "https://fever.ai/dataset/fever.html",
+    "packet_hash": "80a62ec846404dbed9ab1db9ab0bb046f47401accdd1df850780963afea16cd2",
+    "context": {
+      "provenance_status": "complete",
+      "evidence_auditability": "auditable",
+      "human_review_required": "false",
+      "repairability": "no_repair",
+      "policy_profile_id": "controlled_main_v1"
+    },
+    "votes": [
+      {
+        "validator_id": "SYN_SEM_01",
+        "status": "supported",
+        "confidence": null
+      },
+      {
+        "validator_id": "SYN_SEM_02",
+        "status": "supported",
+        "confidence": null
+      },
+      {
+        "validator_id": "SYN_SEM_03",
+        "status": "supported",
+        "confidence": null
+      },
+      {
+        "validator_id": "SYN_SEM_04",
+        "status": "supported",
+        "confidence": null
+      }
+    ],
+    "posterior": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "method": "fixed",
+    "spec_hash": "71121737fe69649ce416bf0b9c2963a7f454d882a38c630c01d1df4744042a66",
+    "expected_costs": {
+      "accept": 0.0,
+      "reject": 4.0,
+      "revise": 3.0,
+      "defer": 0.5
+    },
+    "eligible_actions": [
+      "accept",
+      "defer",
+      "reject"
+    ],
+    "action": "accept",
+    "reason": "minimum_expected_cost_among_eligible_actions",
+    "blocked_accept_reasons": [],
+    "writes_trusted_store": true,
+    "audit_log_written": true,
+    "record_only_not_database_transaction": true,
+    "reference_action_evaluation_only": "accept",
+    "audit_record_hash": "b143fe57cd276ef5e8668eceb1f7ac4f4d696612ac59bdcdf6dffbbd92601b40"
+  },
+  {
+    "illustration_selection": "first lexicographic supported parent with unanimous supported votes in intact and dropout variants; selected for explanation, not efficacy evidence",
+    "packet_id": "FEV_0003__v1",
+    "parent_id": "FEV_0003",
+    "claim": "Robert Redford is a performer.",
+    "evidence": "FEVER gold evidence references: Robert Redford sentence 0 | Robert Redford sentence 4 | Robert Redford sentence 5",
+    "source_url": "https://example.invalid/mismatched-control",
+    "packet_hash": "4d22381481d2ffd4a123f6814a1b08b065ad7639e258f0c4f8f9a1ccec5b33f3",
+    "context": {
+      "provenance_status": "incomplete",
+      "evidence_auditability": "unauditable",
+      "human_review_required": "false",
+      "repairability": "no_repair",
+      "policy_profile_id": "controlled_main_v1"
+    },
+    "votes": [
+      {
+        "validator_id": "SYN_SEM_01",
+        "status": "supported",
+        "confidence": null
+      },
+      {
+        "validator_id": "SYN_SEM_02",
+        "status": "supported",
+        "confidence": null
+      },
+      {
+        "validator_id": "SYN_SEM_03",
+        "status": "supported",
+        "confidence": null
+      },
+      {
+        "validator_id": "SYN_SEM_04",
+        "status": "supported",
+        "confidence": null
+      }
+    ],
+    "posterior": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "method": "fixed",
+    "spec_hash": "71121737fe69649ce416bf0b9c2963a7f454d882a38c630c01d1df4744042a66",
+    "expected_costs": {
+      "accept": 0.0,
+      "reject": 4.0,
+      "revise": 3.0,
+      "defer": 0.5
+    },
+    "eligible_actions": [
+      "defer",
+      "reject"
+    ],
+    "action": "defer",
+    "reason": "minimum_expected_cost_among_eligible_actions",
+    "blocked_accept_reasons": [
+      "incomplete_provenance",
+      "unauditable_evidence"
+    ],
+    "writes_trusted_store": false,
+    "audit_log_written": true,
+    "record_only_not_database_transaction": true,
+    "reference_action_evaluation_only": "defer",
+    "audit_record_hash": "f70eedb556bbc563ccb0f6b138e56e1bcd6817cc22e9a119ffe1143c2e8916e6"
+  }
+]

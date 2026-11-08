@@ -1,0 +1,68 @@
+{
+  "version": "shared-admission-20261025-v1",
+  "bootstrap_seed": 20261025,
+  "bootstrap_iterations": 2000,
+  "fixed_weights": [
+    1,
+    1,
+    1,
+    1
+  ],
+  "reliability": "(training_correct_votes + 1)/(training_votes + 2)",
+  "adaptive": "training_reliability*(0.5+0.5*other_validator_agreement)",
+  "adaptive_strength": 0.5,
+  "main_defer_cost": 0.5,
+  "sensitivity_defer_costs": [
+    0.1,
+    0.5,
+    1.0,
+    2.0
+  ],
+  "tie_order": [
+    "defer",
+    "reject",
+    "revise",
+    "accept"
+  ],
+  "cost_matrix": [
+    [
+      0.0,
+      18.0,
+      13.5,
+      18.0
+    ],
+    [
+      4.0,
+      0.0,
+      5.0,
+      6.0
+    ],
+    [
+      3.0,
+      4.0,
+      0.0,
+      2.0
+    ],
+    [
+      0.5,
+      0.5,
+      0.5,
+      0.0
+    ]
+  ],
+  "split": "leave_one_source_out; all four variants of a parent stay together",
+  "reference": "semantic status plus admissibility; never supplied to prediction",
+  "excluded_prediction_fields": [
+    "semantic_status",
+    "rubric_admission_action",
+    "semantic_observations_json",
+    "variant_name",
+    "corruption_family",
+    "audit_join_id",
+    "challenge_id",
+    "parent_id",
+    "source_dataset",
+    "fold_id"
+  ],
+  "uncertainty": "paired source-stratified parent-cluster percentile bootstrap conditional on frozen votes and fitted fold states"
+}
