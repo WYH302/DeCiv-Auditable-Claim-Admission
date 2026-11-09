@@ -3,7 +3,7 @@
 The files provided here reproduce the shared-input experimental evaluation. They
 contain the categorical validator votes, reference labels, governance metadata flags
 and source/parent identifiers across the 1,800 evaluation packets. example_packets.csv
-contains the two worked FEVER-derived packets illustrated in Table I, retaining
+contains the two worked FEVER-derived packets illustrated in Table 1, retaining
 sentence locators and source URLs.
 
 Upstream benchmark sources:
