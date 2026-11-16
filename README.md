@@ -1,98 +1,117 @@
 # DeCiv: Auditable Claim Admission for Persistent Knowledge Stores
+### 面向持久知识库的可审计四动作风险感知声明准入参考实现
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Benchmark Packets](https://img.shields.io/badge/Benchmark-1%2C800%20Claim%20Packets-orange.svg)](#dataset--benchmark-composition)
-[![Predictions](https://img.shields.io/badge/Evaluated%20Predictions-18%2C000-purple.svg)](#main-empirical-results-rq1)
-[![Audit Trail](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Hash--Chained-teal.svg)](#dual-plane-memory-commitment)
+[![Benchmark Packets](https://img.shields.io/badge/Benchmark-1%2C800%20Packets-orange.svg)](#dataset--benchmark-composition--数据集构成)
+[![Validation](https://img.shields.io/badge/Validation-4--Fold%20%2B%205--Fold%20CV-purple.svg)](#empirical-results--实验结果概览)
+[![Audit Trail](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Chained-teal.svg)](#architecture--整体架构)
 
-Official open-source implementation, benchmark dataset, and reproducibility suite for **DeCiv** (*Auditable Claim Admission for Persistent Knowledge Stores: A Four-Action Risk-Aware Framework*).
+> **English** | [简体中文说明](#简体中文说明)
+>
+> A lightweight, reproducible reference implementation exploring **auditable pre-storage claim admission** for persistent knowledge stores and retrieval-augmented generation (RAG) pipelines. We share the code, structured benchmark packets, cross-validation scripts, and ablation tools in the hope that they may serve as a useful baseline for researchers and practitioners interested in knowledge-store governance. Feedback, issues, and suggestions are warmly welcomed.
 
----
-
-## Overview: Bridging the Epistemic–Institutional Gap
-
-Persistent knowledge repositories (enterprise knowledge graphs, digital archives, and retrieval-augmented generation [RAG] vector stores) confront a fundamental **Epistemic–Institutional Gap**: determining whether a candidate assertion is *semantically supported by evidence* (**epistemic validity**) is structurally distinct from determining whether it satisfies the *provenance, locator verifiability, and repairability standards* required for durable institutional storage (**institutional admissibility**).
-
-Conventional verification pipelines operate under an implicit *epistemic sufficiency assumption*—treating high semantic confidence as direct authorization for database ingestion—or rely on binary abstention that collapses outright refutation, repairable localized flaws, and missing provenance into an undifferentiated backlog.
-
-**DeCiv** resolves this dilemma through three core architectural innovations:
-
-1. **Epistemic–Governance Decoupling (EGD)**: Separates **Stage I (Epistemic Consensus Synthesis)**—which aggregates noisy multi-validator votes into posterior distributions $q(s \mid x)$ over four semantic states ($\mathcal{S} = \{\text{sup}, \text{con}, \text{part}, \text{ins}\}$)—from **Stage II (Constrained Institutional Risk Routing)**, an epistemic firewall that enforces metadata eligibility gates $\mathcal{E}(x)$ and asymmetric expected-cost minimization $C(a, s)$.
-2. **Four-Way Epistemic Triage**: Replaces binary accept/abstain decisions with four distinct institutional lifecycle dispositions:
-   - **`accept` (Archival Commitment)**: Verified claims with intact, resolvable provenance are indexed into the trusted knowledge store.
-   - **`reject` (Contradiction Expulsion)**: Factual contradictions are permanently withheld and logged to prevent redundant resubmission.
-   - **`revise` (Lineage-Tracked Remediation)**: Substantively grounded claims with localized numerical/temporal flaws and documented repair paths are routed to editorial remediation with cryptographic version linkage $(v+1, H_{\text{prev}} = H(r_v))$.
-   - **`defer` (Epistemic Quarantine)**: Ambiguous assertions or supported claims lacking verifiable provenance are isolated in an investigation queue.
-3. **Dual-Plane Memory Commitment**: Splits persistence into two orthogonal planes:
-   - **Retrieval Plane (Trusted Knowledge Store)**: Admits exclusively `accept` claims ($m_{\text{prov}}=1, m_{\text{ver}}=1$) to immunize downstream RAG pipelines against hallucination propagation and recursive model collapse.
-   - **Accountability Plane (Immutable Audit Ledger)**: Commits all four dispositions ($a^* \in \mathcal{A}$) as SHA-256 content-hashed audit records $r = (H(x), a^*, q(\cdot \mid x), \mathcal{E}(x), \tau, H_{\text{prev}})$.
-
-```mermaid
-flowchart TD
-    P["Candidate Claim Packet x = (c, E, m, v, H_prev) & Multi-Validator Votes v"] --> S1
-    S1["Stage I: Epistemic Consensus Synthesis<br/>Synthesize discrete votes into posterior q(s | x) over S = {sup, con, part, ins}"] --> S2
-    S2["Stage II: Constrained Institutional Risk Router (Epistemic Firewall)<br/>Provenance gates E(x) + Asymmetric loss minimization argmin C(a, s)"]
-    S2 --> A1["Accept<br/>(Archival Commitment)"]
-    S2 --> A2["Reject<br/>(Contradiction Expulsion)"]
-    S2 --> A3["Revise<br/>(Lineage Remediation)"]
-    S2 --> A4["Defer<br/>(Epistemic Quarantine)"]
-    A1 ==> RP["Retrieval Plane<br/>(Trusted Knowledge Store for RAG)"]
-    A1 & A2 & A3 & A4 --> AP["Accountability Plane<br/>(Immutable SHA-256 Audit Ledger)"]
-```
+![DeCiv Overall Architecture](figures/figure1_workflow.png)
 
 ---
 
-## Key Empirical Findings
+## Overview | 研究背景与核心思路
 
-### 1. Selectivity–Throughput Trade-Off (`RQ1`)
+Persistent knowledge repositories—such as enterprise knowledge graphs, curated digital archives, and RAG vector indices—face an **Epistemic–Institutional Gap**: whether a candidate statement is *semantically supported by retrieved text* (**epistemic validity**) does not by itself guarantee that it meets the *provenance completeness, locator auditability, and repairability criteria* required for long-term storage (**institutional admissibility**).
 
-![Operating Trade-offs between Non-Deferral and False Acceptance](figures/admission_tradeoff.png)
+Rather than treating high classifier confidence as an automatic write permission or collapsing all non-admitted items into a single binary abstention bucket, **DeCiv** explores a decoupled two-stage pre-storage workflow:
 
-| Estimator / Router | Four-Action Acc. (%) | False Acceptance Rate (FAR, %) | Accept Precision (%) | Acceptance Rate (%) | Non-Defer Fraction (%) | Eligibility Violations |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Majority / direct** | 75.56 | 10.55 | 45.22 | 17.44 | 80.50 | 221 |
-| **Reliability-weighted / direct** | 77.06 | 13.56 | 40.75 | 20.72 | 89.72 | 265 |
-| **Dawid–Skene / direct** | 71.78 | 14.79 | 36.07 | 20.94 | 98.17 | 330 |
-| **DeCiv Fixed / direct** | 75.56 | 10.55 | 45.22 | 17.44 | 80.50 | 221 |
-| **DeCiv Adaptive / direct** | 77.06 | 13.56 | 40.75 | 20.72 | 89.72 | 265 |
-| **Majority / risk** | 41.17 | **0.06** | **97.87** | 2.61 | 19.56 | **0** |
-| **Reliability-weighted / risk** | 41.17 | **0.06** | **97.87** | 2.61 | 19.56 | **0** |
-| **Dawid–Skene / risk** | **76.33** | **0.18** | **95.16** | 3.44 | **56.89** | **0** |
-| **DeCiv Fixed / risk** | 41.17 | **0.06** | **97.87** | 2.61 | 19.56 | **0** |
-| **DeCiv Adaptive / risk** | **46.61** | **0.06** | **97.87** | 2.61 | **25.00** | **0** |
-
-- **Eliminating Unvetted Ingestion**: Direct majority mapping achieves 75.56% accuracy but suffers a **10.55% false-acceptance rate (FAR)** (172 false accepts out of 1,630 policy-nonacceptable packets; 45.22% accept precision) because semantic aggregators ignore broken or missing provenance.
-- **Zero-Contamination Boundary**: Contextual risk routing eliminates all provenance eligibility violations (`0 / 1,800`) and suppresses FAR by $-10.49$ percentage points (95% cluster-bootstrap CI: $[-11.77\%, -9.27\%]$) down to **0.06%** (97.87% accept precision).
-- **Consensus-Amplified Adaptive Recovery**: Agreement-adjusted adaptive weighting dynamically amplifies high-concordance packets, expanding non-deferral from 19.56% to **25.00%** and accuracy from 41.17% to **46.61%** ($+5.44$ pp, 95% CI: $[4.50\%, 6.39\%]$) by nearly doubling revision recall (`24.22% -> 46.00%`) at **zero additional false acceptance (0.06% FAR)**.
-- **Latent-Class Calibration**: Dawid–Skene EM estimation paired with risk routing reaches **76.33% accuracy** and **56.89% non-deferral** while holding FAR to **0.18%** (95.16% accept precision).
+1. **Epistemic–Governance Decoupling (EGD)**:
+   - **Stage I (Epistemic Consensus Synthesis)** aggregates categorical votes from multiple noisy verifiers into a calibrated posterior distribution over four semantic states (`supported`, `contradicted`, `partially_supported`, `insufficient_evidence`), without reading governance metadata.
+   - **Stage II (Constrained Institutional Risk Routing)** enforces hard provenance and repairability gates $\mathcal{E}(x)$ together with an asymmetric expected-cost matrix $C(a, s)$.
+2. **Four-Way Epistemic Triage**:
+   - `accept` (*Archival Commitment*): Admitted to the trusted retrieval store only when both semantic support and verifiable provenance hold.
+   - `reject` (*Contradiction Expulsion*): Refuted claims are withheld and logged to avoid repeated re-evaluation.
+   - `revise` (*Lineage-Tracked Remediation*): Partially flawed claims with verified repair paths are routed to an editing queue with hash linkage $(v+1, H_{\text{prev}})$.
+   - `defer` (*Epistemic Quarantine*): Ambiguous claims or supported claims with missing/broken source locators are quarantined for primary-source review.
+3. **Dual-Plane Memory Commitment**:
+   - **Retrieval Plane**: Indexes strictly `accept` claims so downstream RAG contexts remain clean.
+   - **Accountability Plane**: Records all four dispositions in an append-only SHA-256 content-addressed audit log (`~16.3 μs` per decision on standard CPU hardware, requiring `0.00` additional GPU hours at the routing layer).
 
 ---
 
-### 2. Four-Way Epistemic Triage Confusion Structure (`RQ2`)
+## Empirical Results | 实验结果概览
+
+### 1. Selectivity–Throughput Frontier (`RQ1`) | 准入安全性与吞吐率权衡
+
+![Selectivity-Throughput Frontier](figures/admission_tradeoff.png)
+
+| Estimator / Router | 4-Fold Acc. (%) | FAR (%) ↓ | Accept Prec. (%) ↑ | Non-Defer (%) | Revise Rec. (%) | Violations ↓ | 5-Fold CV Acc. (%) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Majority / direct** | 75.56 | 10.55 | 45.22 | 80.50 | 83.78 | 221 | 75.56 ± 1.66 |
+| **Rel.-weighted / direct** | 77.06 | 13.56 | 40.75 | 89.72 | 87.78 | 265 | 77.78 ± 2.35 |
+| **Dawid–Skene / direct** | 71.78 | 14.79 | 36.07 | 98.17 | 93.33 | 330 | 77.44 ± 1.45 |
+| **DeCiv Fixed / risk** | 41.17 | **0.06** | **97.87** | 19.56 | 24.22 | **0** | 41.17 ± 3.11 |
+| **DeCiv Adaptive / risk** | 46.61 | **0.06** | **97.87** | 25.00 | 46.00 | **0** | 45.94 ± 1.91 |
+| **DeCiv + Dawid–Skene / risk** | **76.33** | 0.18 | 95.16 | **56.89** | **79.33** | **0** | 75.44 ± 1.58 |
+
+- **Reducing Unvetted Ingestion**: Direct majority mapping reaches `75.56%` overall accuracy, yet admits `172` of `1,630` policy-inadmissible packets (`10.55%` false-acceptance rate, `45.22%` accept precision) when provenance is missing or broken.
+- **Provenance-Constrained Risk Routing**: Combining metadata gates with asymmetric risk routing removes all eligibility violations (`0 / 1,800`) and lowers false acceptance to **`0.06%`** (`97.87%` accept precision).
+- **Adaptive Peer-Agreement Weighting**: Modulating historical verifier reliability by instance-level peer concordance increases repairable claim recovery from `24.22%` to **`46.00%`** (`+90%` relative gain) while keeping FAR at **`0.06%`**.
+- **Latent-Class Calibration**: Pairing four-class Dawid–Skene EM estimation with risk routing yields **`76.33%`** accuracy and **`56.89%`** non-deferral at **`0.18%`** FAR (`75.44 ± 1.58%` under 5-fold stratified CV).
+
+---
+
+### 2. Four-Action Confusion Structure (`RQ2`) | 四动作分流混淆矩阵
 
 ![Four-Action Confusion Matrices](figures/routing_confusions.png)
 
-- On **Reference Defer ($N=390$)** packets (including 170 semantically supported claims with broken/missing provenance), direct majority voting falsely admits **146 packets (37.4%)** into trusted storage. Both Fixed and Adaptive risk routers achieve **100.0% quarantine recall (`390 / 390`)**, and Dawid–Skene risk routing quarantines **375 packets (96.2%)** with only 1 false accept (0.3%).
-- On **Reference Revise ($N=450$)** packets, Consensus-Amplified Adaptive Risk Routing recovers **207 repairable claims (46.0%)** (up from 109 [24.2%] under Fixed risk routing), and Dawid–Skene risk routing recovers **357 claims (79.3%)**, all with **0 false accepts**.
+- On **policy-defer (`n = 390`)** packets (including supported claims with broken locators), direct majority voting admits `146` packets (`37.4%`), whereas Fixed and Adaptive risk routing quarantine `390 / 390` (`100.0%`).
+- On **policy-revise (`n = 450`)** packets, Adaptive risk routing recovers `207` claims (`46.0%`) and Dawid–Skene risk routing recovers `357` claims (`79.3%`) with zero false archival accepts.
 
 ---
 
-### 3. Cross-Domain Generalization & Deferral-Cost Sensitivity (`RQ3`)
+### 3. Deferral-Cost Sensitivity & Out-of-Domain Generalization (`RQ3`) | 延迟代价敏感度与跨域泛化
 
 ![Deferral Cost Sensitivity](figures/routing_cost_sensitivity.png)
 
-Across four-fold source-held-out cross-validation (training on 3 benchmark sources and testing on the held-out 4th source) and deferral-cost sweeps $d \in \{0.1, 0.5, 1.0, 2.0\}$:
-- **Out-of-Domain Safety**: Contextual risk routing achieves **0.00% FAR** on held-out HotpotQA ($N=320$) and Wikipedia Revisions ($N=120$) across all risk routers, **0.00% FAR** on TruthfulQA ($N=320$) under Fixed and Adaptive risk routing (0.31% under Dawid–Skene), and **0.11%–0.21% FAR** on FEVER ($N=1,040$).
-- **Parametric Queue Control**: Increasing the deferral penalty $d$ from $0.1$ to $2.0$ smoothly expands non-deferral throughput (`19.56% -> 58.44%` for Adaptive; `41.56% -> 72.17%` for Dawid–Skene) while keeping Fixed and Adaptive FAR invariant at **0.06%**.
+Sweeping the deferral penalty $d \in \{0.1, 0.5, 1.0, 2.0\}$ provides a smooth operational knob to trade quarantine volume against immediate resolution (`19.56% -> 58.44%` non-deferral for Adaptive; `41.56% -> 72.17%` for Dawid–Skene), while hard provenance gates prevent ungrounded claims from entering trusted storage across held-out domains.
 
 ---
 
-## Dataset & Benchmark Composition
+### 4. Five-Fold Stratified CV & Component Ablations | 五折交叉验证与模块消融实验
 
-The benchmark comprises **1,800 structured claim packets** derived from **450 parent claims** across four parent corpora (each parent claim instantiated across intact, provenance-dropout, repairable-corruption, and contradictory-corruption variants):
+![Five-Fold CV and Component Ablations](figures/ablation_and_cv.png)
 
-| Source Stratum | Parent Claims | Total Packets | Policy `accept` | Policy `reject` | Policy `revise` | Policy `defer` |
+Removing individual components confirms their complementary roles (`results/ablation_metrics.csv`):
+- **w/o Peer-Agreement Amplification**: Revision recall drops by `-21.78 pp` (`46.00% -> 24.22%`).
+- **w/o Provenance Gate**: FAR rises from `0.06%` to `2.94%` (`47` provenance violations; accept precision drops to `48.94%`).
+- **w/o Repairability Gate**: Produces `20` invalid revision referrals on Adaptive (`76` on Dawid–Skene).
+- **w/o Asymmetric Cost (`0–1` Symmetric Loss)**: FAR rises to `3.87%` on Adaptive (`4.42%` on Dawid–Skene).
+- **w/o Quarantine Deferral**: Forcing immediate commitment increases FAR sixfold (`0.37%` on Adaptive, `1.04%` on Dawid–Skene).
+
+---
+
+## 简体中文说明
+
+### 项目简介
+
+本项目提供了 **DeCiv（面向持久知识库的可审计四动作风险感知声明准入框架）** 的开源参考代码、结构化评测数据包与完整复现脚本。本工作主要面向企业知识图谱、数字档案库及检索增强生成（RAG）向量库中的“入库前边界治理”问题，是一次将**多验证器共识估计**、**溯源约束风险路由**与**轻量级密码学审计链**结合的探索性尝试。代码简洁轻量，无需调用外部商业 API 或消耗额外 GPU 算力即可在本地完整复现实验结果，欢迎各位同行批评指正与交流探讨。
+
+### 核心设计概览
+
+1. **认知有效性与制度准入性解耦（Epistemic–Governance Decoupling）**
+   - **第一阶段（认知共识合成）**：仅根据多验证器的离散投票合成四类语义状态（支持、矛盾、部分支持、证据不足）的后验概率分布，不接触治理元数据，避免策略偏置污染真值估计。
+   - **第二阶段（受限制度风险路由）**：结合溯源完整性与可修复性硬门控 $\mathcal{E}(x)$ 以及非对称代价矩阵 $C(a, s)$，最小化期望制度风险。
+2. **四向认知分流（Four-Way Epistemic Triage）**
+   - 将传统的二元“接收/拒识”细化为四种生命周期处置动作：**`accept`（归档入库）**、**`reject`（矛盾剔除）**、**`revise`（带谱系追踪的编辑修复）** 与 **`defer`（认知隔离待查）**。
+   - 引入**共识放大自适应加权（Consensus-Amplified Adaptive Weighting）**，在不放宽 `0.06%` 误接收率的前提下，将可修复声明的召回率从 `24.22%` 提升至 `46.00%`。
+3. **双平面记忆提交（Dual-Plane Memory Commitment）**
+   - **检索平面（Retrieval Plane）**：仅允许通过全部溯源核验的 `accept` 声明写入可信知识库，降低下游 RAG 幻觉传播风险。
+   - **问责平面（Accountability Plane）**：对全部四类处置结果生成包含输入摘要、后验分布、策略配置与前序版本哈希的 SHA-256 审计记录（单次决策耗时约 `16.3 μs`）。
+
+---
+
+## Dataset & Benchmark Composition | 数据集构成
+
+The evaluation suite contains **1,800 structured claim packets** constructed from **450 disjoint parent claims** across four public benchmark sources (each parent instantiated across intact verified, provenance-dropout, repairable-corruption, and contradiction variants, with zero parent-cluster leakage across folds):
+
+| Benchmark Stratum | Parent Claims | Total Packets | Policy `accept` | Policy `reject` | Policy `revise` | Policy `defer` |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **FEVER** | 260 | 1,040 | 90 | 440 | 260 | 250 |
 | **TruthfulQA** | 80 | 320 | 0 | 240 | 80 | 0 |
@@ -102,33 +121,33 @@ The benchmark comprises **1,800 structured claim packets** derived from **450 pa
 
 ---
 
-## Quick Start
+## Quick Start | 快速上手与复现指南
 
-### 1. Installation
+### 1. Environment Setup | 安装依赖
 
-Requires **Python 3.11+** and `numpy` (plus `matplotlib` for regenerating plots):
+Requires **Python 3.11+** with `numpy` (and `matplotlib` if regenerating figures):
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run the Interactive Demo (`demo.py`)
+### 2. Interactive Walkthrough | 运行交互演示 (`demo.py`)
 
-Inspect the paired execution trace (`FEV2_0001_clean` vs. `FEV2_0001_prov_drop`), SHA-256 audit record commitment, and full 10-configuration benchmark summary:
+Inspect the paired execution trace (`FEV_0003__v0` vs. `FEV_0003__v1`), SHA-256 audit hashes, 4-fold & 5-fold metrics, and component ablations:
 
 ```bash
 python demo.py
 ```
 
-### 3. Reproduce All 18,000 Predictions & Bootstrap Intervals (`run_comparison.py`)
+### 3. Full Reproducibility Suite | 完整重跑全部实验 (`run_comparison.py`)
 
-Execute the complete four-fold source-held-out evaluation, Dawid–Skene EM fitting, 2,000 paired parent-cluster bootstrap resamples, and deferral-cost sensitivity sweep:
+Re-run the 4-fold cross-domain evaluation (`18,000` packet predictions), 5-fold source-stratified parent-cluster cross-validation, 2,000 cluster-bootstrap confidence intervals, deferral-cost sweep, and 11-variant component ablations (completes in ~`16 s` on a standard CPU):
 
 ```bash
 python run_comparison.py
 ```
 
-### 4. Regenerate Figures & Run Automated Tests
+### 4. Regenerate Figures & Run Unit Tests | 重新绘图与单元测试
 
 ```bash
 python scripts/plot_figures.py
@@ -137,48 +156,31 @@ python -m unittest discover -s tests -v
 
 ---
 
-## Repository Structure
+## Repository Structure | 目录结构
 
 ```text
-├── demo.py                          # Quick-start walkthrough of paired trace & benchmark metrics
-├── run_comparison.py                # Full 4-fold cross-validation & 2,000-bootstrap evaluation runner
-├── experiment_spec.json             # Prespecified experimental protocol, cost matrix & seed (20261025)
-├── requirements.txt                 # Python dependencies (numpy, matplotlib)
-├── THIRD_PARTY_NOTICES.md           # Upstream dataset citations and open licenses (FEVER, TruthfulQA, HotpotQA)
-├── data/
-│   ├── evaluation_index_v2.csv      # Packet-to-parent and source stratum index (1,800 packets)
-│   ├── semantic_votes_v2.csv        # 7,200 categorical validator votes (K=4 verifiers)
-│   ├── semantic_targets_v2.csv      # Underlying semantic states (sup, con, part, ins)
-│   ├── governance_contexts_v2.csv   # Provenance, locator verifiability & repairability flags
-│   ├── governance_targets_v2.csv    # Policy-reference admission actions (accept, reject, revise, defer)
-│   ├── example_packets.csv          # Worked paired FEVER packets with claim/evidence text & URLs
-│   ├── controlled_semantic_profiles_r12.json
-│   └── governance_policies_r12.json
-├── vendor/deciv2/r12/               # Core DeCiv library
-│   ├── contracts.py                 # Packet contracts, governance gates & SHA-256 audit records
-│   ├── semantic.py                  # Stage I consensus aggregators & Dawid-Skene EM implementation
-│   └── governance.py                # Stage II constrained expected-cost risk router
-├── results/
-│   ├── main_metrics.csv             # Aggregate metrics across all 10 estimator-router combinations
-│   ├── action_confusion.csv         # 4x4 confusion matrices across all configurations
-│   ├── by_source.csv                # Source-held-out cross-validation metrics by dataset stratum
-│   ├── cost_sensitivity.csv         # Deferral cost sweep (d in {0.1, 0.5, 1.0, 2.0})
-│   ├── paired_differences.csv       # 2,000 parent-cluster bootstrap 95% confidence intervals
-│   ├── execution_trace.json         # Paired execution trace with SHA-256 audit hashes
-│   ├── predictions.csv              # All 18,000 packet-level predictions
-│   └── study_report.json            # Complete fold-fit diagnostics and convergence logs
-├── figures/                         # Publication-grade figures (PNG & PDF)
+├── demo.py                           # Quick-start walkthrough (paired trace, CV & ablation summary)
+├── run_comparison.py                 # Full 4-fold + 5-fold CV, bootstrap & ablation evaluation runner
+├── experiment_spec.json              # Prespecified protocol, cost matrix & random seed (20261025)
+├── requirements.txt                  # Minimal Python dependencies (numpy, matplotlib)
+├── THIRD_PARTY_NOTICES.md            # Upstream benchmark citations and open licenses
+├── data/                             # Structured benchmark inputs (1,800 packets, 7,200 votes)
+├── vendor/deciv2/r12/                # Core DeCiv modules (contracts, Stage I consensus, Stage II router)
+├── results/                          # Pre-generated CSV & JSON outputs (including five_fold_cv & ablations)
+├── figures/                          # Workflow architecture & empirical charts (PNG & vector PDF)
+│   ├── figure1_workflow.png
 │   ├── admission_tradeoff.png
 │   ├── routing_confusions.png
-│   └── routing_cost_sensitivity.png
+│   ├── routing_cost_sensitivity.png
+│   └── ablation_and_cv.png
 ├── scripts/
-│   └── plot_figures.py              # Standalone figure generator from results/*.csv
+│   └── plot_figures.py               # Standalone figure generator from results/*.csv
 └── tests/
-    └── test_deciv_reproducibility.py # Automated unit & reproducibility test suite
+    └── test_deciv_reproducibility.py # Automated unit & data-integrity tests
 ```
 
 ---
 
-## License
+## License & Attribution | 开源协议与致谢
 
-This project is released under the [MIT License](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for upstream benchmark attributions and license terms.
+Released under the [MIT License](LICENSE). Please refer to [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for upstream dataset citations and license terms (FEVER, TruthfulQA, HotpotQA, and Wikipedia Revisions).

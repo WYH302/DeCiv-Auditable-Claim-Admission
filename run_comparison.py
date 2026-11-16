@@ -249,6 +249,100 @@ def save_sensitivity(index, targets, contexts, predictions):
     write_csv("cost_sensitivity.csv", output)
 
 
+def save_five_fold_cv(index, targets, contexts, inputs):
+    """Evaluate 5-fold source-stratified parent-cluster cross-validation (n=360/fold, 90 parents/fold)."""
+    rng = np.random.default_rng(SPEC["bootstrap_seed"])
+    by_src = defaultdict(list)
+    for row in index:
+        if row["parent_id"] not in by_src[row["source_dataset"]]:
+            by_src[row["source_dataset"]].append(row["parent_id"])
+    parent_fold = {}
+    for src, plist in sorted(by_src.items()):
+        plist = sorted(plist)
+        perm = rng.permutation(len(plist))
+        for idx_pos, p_idx in enumerate(perm):
+            parent_fold[plist[p_idx]] = idx_pos % 5
+
+    fold_metrics = defaultdict(list)
+    for fold_id in range(5):
+        training = [r for r in index if parent_fold[r["parent_id"]] != fold_id]
+        testing = [r for r in index if parent_fold[r["parent_id"]] == fold_id]
+        assert not ({r["parent_id"] for r in training} & {r["parent_id"] for r in testing})
+        train_inputs = tuple(inputs[r["audit_join_id"]] for r in training)
+        test_inputs = tuple(inputs[r["audit_join_id"]] for r in testing)
+        successes, totals = Counter(), Counter()
+        for row in training:
+            for vote in inputs[row["audit_join_id"]].semantic_votes:
+                totals[vote.validator_id] += 1
+                successes[vote.validator_id] += (vote.status == targets[row["audit_join_id"]])
+        reliability = {vid: (successes[vid] + 1) / (totals[vid] + 2) for vid in sorted(totals)}
+        ds = SemanticDawidSkeneEstimator().fit(train_inputs)
+        ds_outputs = ds.predict_proba(test_inputs)
+        for mode in ESTIMATORS:
+            for router in ("direct", "risk"):
+                f_rows = []
+                for row, ds_out in zip(testing, ds_outputs):
+                    key = row["audit_join_id"]
+                    posterior = [ds_out.probability(s) for s in STATUSES] if mode == "dawid_skene" else aggregate(inputs[key].semantic_votes, reliability, mode)
+                    action, _, _, _, admissible = route(posterior, contexts[key], router)
+                    ref = reference_action(targets[key], contexts[key])
+                    f_rows.append({"predicted_action": action, "reference_action": ref, "correct": int(action == ref), "false_accept": int(action == "accept" and ref != "accept"), "eligible": int(admissible)})
+                fold_metrics[(mode, router)].append(summarize(f_rows))
+
+    out_rows = []
+    for (mode, router), mlist in fold_metrics.items():
+        rec = {"method": mode, "router": router, "folds": 5}
+        for met in ("accuracy", "far", "accept_precision", "acceptance_rate", "non_defer_fraction", "recall_revise"):
+            vals = [float(m[met]) for m in mlist]
+            rec[f"{met}_mean"] = float(np.mean(vals))
+            rec[f"{met}_std"] = float(np.std(vals, ddof=1))
+        rec["eligibility_violations_total"] = int(sum(m["eligibility_violations"] for m in mlist))
+        out_rows.append(rec)
+    write_csv("five_fold_cv.csv", out_rows)
+
+
+def save_ablations(index, targets, contexts, predictions):
+    """Evaluate systematic component ablations across DeCiv Adaptive and Dawid-Skene routers."""
+    configs = [
+        ("adaptive_full", "DeCiv Adaptive (Full)", "adaptive", False, False, False, False),
+        ("adaptive_no_agreement", "w/o Peer-Agreement Amplification", "fixed", False, False, False, False),
+        ("adaptive_no_prov_gate", "w/o Provenance Gate", "adaptive", True, False, False, False),
+        ("adaptive_no_repair_gate", "w/o Repairability Gate", "adaptive", False, True, False, False),
+        ("adaptive_symmetric_cost", "w/o Asymmetric Cost (0-1 Loss)", "adaptive", False, False, True, False),
+        ("adaptive_no_defer", "w/o Quarantine Deferral", "adaptive", False, False, False, True),
+        ("ds_full", "DeCiv + Dawid-Skene (Full)", "dawid_skene", False, False, False, False),
+        ("ds_no_prov_gate", "w/o Provenance Gate", "dawid_skene", True, False, False, False),
+        ("ds_no_repair_gate", "w/o Repairability Gate", "dawid_skene", False, True, False, False),
+        ("ds_symmetric_cost", "w/o Asymmetric Cost (0-1 Loss)", "dawid_skene", False, False, True, False),
+        ("ds_no_defer", "w/o Quarantine Deferral", "dawid_skene", False, False, False, True),
+    ]
+    out_rows = []
+    for variant_id, label, mode, disable_prov, disable_rep, symmetric_cost, no_defer in configs:
+        rows_ab = []
+        for row in index:
+            key = row["audit_join_id"]
+            posterior = predictions[mode][key]
+            ctx = dict(contexts[key])
+            if disable_prov:
+                ctx["provenance_status"] = "complete"
+                ctx["evidence_auditability"] = "auditable"
+                ctx["human_review_required"] = "false"
+            if disable_rep:
+                ctx["repairability"] = "verified_repair"
+            allowed, _ = eligible(ctx)
+            if no_defer and "defer" in allowed:
+                allowed.remove("defer")
+            costs = (1.0 - np.eye(4)) if symmetric_cost else BASE_COST.copy()
+            risks = costs @ np.asarray(posterior)
+            best = min(risks[ACTIONS.index(a)] for a in allowed)
+            action = next(a for a in TIE_ORDER if a in allowed and risks[ACTIONS.index(a)] <= best + 1e-12)
+            true_allowed, _ = eligible(contexts[key])
+            ref = reference_action(targets[key], contexts[key])
+            rows_ab.append({"predicted_action": action, "reference_action": ref, "correct": int(action == ref), "false_accept": int(action == "accept" and ref != "accept"), "eligible": int(action in true_allowed)})
+        out_rows.append({"variant_id": variant_id, "label": label, "base_estimator": mode, **summarize(rows_ab)})
+    write_csv("ablation_metrics.csv", out_rows)
+
+
 def save_trace(index, targets, contexts, inputs, predictions):
     by_parent = defaultdict(list)
     for row in index:
@@ -315,6 +409,8 @@ def main():
     write_csv("action_confusion.csv", [{"method": mode, "router": router, "reference_action": ref, "predicted_action": pred, "count": sum(r["reference_action"] == ref and r["predicted_action"] == pred for r in group)} for (mode, router), group in groups.items() for ref in ACTIONS for pred in ACTIONS])
     write_csv("by_source.csv", [{"method": mode, "router": router, "source": source, **summarize([r for r in group if r["held_out_source"] == source])} for (mode, router), group in groups.items() for source in sorted({r["source_dataset"] for r in index})])
     save_sensitivity(index, targets, contexts, predictions)
+    save_five_fold_cv(index, targets, contexts, inputs)
+    save_ablations(index, targets, contexts, predictions)
     save_trace(index, targets, contexts, inputs, predictions)
     checks = targeted_checks(index, targets, contexts, inputs, predictions, rows)
     legacy = {r["audit_join_id"]: r["rubric_admission_action"] for r in read_rows("governance_targets_v2.csv")}

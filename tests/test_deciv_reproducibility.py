@@ -1,4 +1,4 @@
-"""Automated verification tests for the DeCiv benchmark and reproducibility outputs."""
+"""Automated verification tests for the DeCiv benchmark, 5-fold CV, and ablation outputs."""
 import csv
 import json
 import unittest
@@ -21,16 +21,27 @@ class TestDeCivReproducibility(unittest.TestCase):
         with (RESULTS / "main_metrics.csv").open(encoding="utf-8") as f:
             metrics = {(r["method"], r["router"]): r for r in csv.DictReader(f)}
         self.assertEqual(len(metrics), 10)
-        # Verify zero provenance eligibility violations under all risk routers
         for method in ("majority", "reliability_weighted", "dawid_skene", "fixed", "adaptive"):
             self.assertEqual(int(metrics[(method, "risk")]["eligibility_violations"]), 0)
-        # Verify key headline numbers
         self.assertAlmostEqual(float(metrics[("majority", "direct")]["far"]), 172 / 1630, places=6)
         self.assertAlmostEqual(float(metrics[("fixed", "risk")]["far"]), 1 / 1630, places=6)
         self.assertAlmostEqual(float(metrics[("adaptive", "risk")]["accuracy"]), 839 / 1800, places=6)
         self.assertAlmostEqual(float(metrics[("adaptive", "risk")]["non_defer_fraction"]), 0.25, places=6)
         self.assertAlmostEqual(float(metrics[("dawid_skene", "risk")]["accuracy"]), 1374 / 1800, places=6)
         self.assertAlmostEqual(float(metrics[("dawid_skene", "risk")]["far"]), 3 / 1630, places=6)
+
+    def test_five_fold_cv_and_ablations(self):
+        with (RESULTS / "five_fold_cv.csv").open(encoding="utf-8") as f:
+            cv5 = {(r["method"], r["router"]): r for r in csv.DictReader(f)}
+        self.assertEqual(len(cv5), 10)
+        self.assertAlmostEqual(float(cv5[("adaptive", "risk")]["far_mean"]), 1 / 1630, delta=0.002)
+
+        with (RESULTS / "ablation_metrics.csv").open(encoding="utf-8") as f:
+            ab = {r["variant_id"]: r for r in csv.DictReader(f)}
+        self.assertEqual(len(ab), 11)
+        self.assertEqual(int(ab["adaptive_full"]["eligibility_violations"]), 0)
+        self.assertGreater(int(ab["adaptive_no_prov_gate"]["eligibility_violations"]), 40)
+        self.assertGreater(int(ab["adaptive_no_repair_gate"]["eligibility_violations"]), 15)
 
     def test_predictions_completeness(self):
         with (RESULTS / "predictions.csv").open(encoding="utf-8") as f:
