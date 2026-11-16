@@ -343,6 +343,195 @@ def save_ablations(index, targets, contexts, predictions):
     write_csv("ablation_metrics.csv", out_rows)
 
 
+def _glad_fit_and_predict(train_inputs, test_inputs, max_iter=60, tol=1e-6):
+    """Four-class GLAD item-difficulty & verifier-expertise EM (Whitehill et al., 2009)."""
+    k_val = len(train_inputs[0].semantic_votes)
+    v_ids = [v.validator_id for v in train_inputs[0].semantic_votes]
+    s_idx = {s: idx for idx, s in enumerate(STATUSES)}
+    n_tr = len(train_inputs)
+    votes_tr = np.array([[s_idx[v.status] for v in inp.semantic_votes] for inp in train_inputs], dtype=int)
+    priors = np.full(4, 0.25)
+    alpha = np.ones(k_val, dtype=float)
+    beta = np.ones(n_tr, dtype=float)
+
+    for _ in range(max_iter):
+        # E-step on training packets
+        z_tr = beta[:, None] * alpha[None, :]  # (N_tr, K)
+        ez = np.exp(np.clip(z_tr, -8.0, 8.0))
+        p_corr = np.clip(ez / (ez + 3.0), 1e-6, 1.0 - 1e-6)
+        p_err = (1.0 - p_corr) / 3.0
+        log_q = np.log(priors + 1e-12)[None, :] + np.zeros((n_tr, 4))
+        for c in range(4):
+            match = (votes_tr == c)
+            log_q[:, c] += np.sum(match * np.log(p_corr) + (~match) * np.log(p_err), axis=1)
+        log_q -= np.max(log_q, axis=1, keepdims=True)
+        q_tr = np.exp(log_q)
+        q_tr /= np.sum(q_tr, axis=1, keepdims=True)
+
+        # Expected correctness per (i, k)
+        exp_match = np.zeros((n_tr, k_val))
+        for c in range(4):
+            exp_match += q_tr[:, [c]] * (votes_tr == c)
+
+        old_alpha = alpha.copy()
+        priors = (np.sum(q_tr, axis=0) + 1e-3) / (n_tr + 4e-3)
+        # Closed-form / damped Newton M-step updates for alpha_k and beta_i
+        acc_k = np.clip(np.mean(exp_match, axis=0), 0.28, 0.96)
+        alpha_new = np.log(3.0 * acc_k / (1.0 - acc_k))
+        alpha = 0.5 * alpha + 0.5 * np.clip(alpha_new / max(np.mean(beta), 0.2), 0.2, 4.0)
+
+        acc_i = np.clip(np.sum(exp_match * alpha[None, :], axis=1) / np.sum(alpha), 0.28, 0.96)
+        beta = np.clip(np.log(3.0 * acc_i / (1.0 - acc_i)) / max(np.mean(alpha), 0.2), 0.35, 2.5)
+        if np.max(np.abs(alpha - old_alpha)) < tol:
+            break
+
+    # Predict on test packets (inferring instance difficulty beta_test from inter-verifier agreement)
+    posteriors = []
+    for inp in test_inputs:
+        v_arr = np.array([s_idx[v.status] for v in inp.semantic_votes], dtype=int)
+        # Instance concordance proxy for difficulty beta_test (unsupervised, votes only)
+        max_cnt = max(Counter(v_arr.tolist()).values())
+        beta_t = {4: 1.45, 3: 1.05, 2: 0.75, 1: 0.45}[max_cnt]
+        ez_t = np.exp(np.clip(beta_t * alpha, -8.0, 8.0))
+        pc = np.clip(ez_t / (ez_t + 3.0), 1e-6, 1.0 - 1e-6)
+        pe = (1.0 - pc) / 3.0
+        lq = np.log(priors + 1e-12).copy()
+        for c in range(4):
+            m_c = (v_arr == c)
+            lq[c] += float(np.sum(m_c * np.log(pc) + (~m_c) * np.log(pe)))
+        lq -= np.max(lq)
+        qt = np.exp(lq)
+        qt /= np.sum(qt)
+        posteriors.append(qt.tolist())
+    return posteriors
+
+
+def _route_sota(posterior, context, policy_name, defer_cost=0.5):
+    """Canonical SOTA selective classification, abstention, and ungated L2D policies."""
+    true_allowed, _ = eligible(context)
+    p = np.asarray(posterior, dtype=float)
+    if policy_name == "selective_threshold":
+        # Chow (1970) / Franc et al. (2023): abstain (defer) if max posterior < tau=0.85
+        if float(np.max(p)) < 0.85:
+            action = "defer"
+        else:
+            winners = [ACTIONS[j] for j, v in enumerate(p) if abs(v - float(np.max(p))) <= 1e-12]
+            action = winners[0] if len(winners) == 1 else "defer"
+    elif policy_name == "margin_rejector":
+        # Mao et al. (2024): multi-class predictor-rejector abstaining when top-2 margin < gamma=0.50
+        s_p = np.sort(p)[::-1]
+        if float(s_p[0] - s_p[1]) < 0.50:
+            action = "defer"
+        else:
+            winners = [ACTIONS[j] for j, v in enumerate(p) if abs(v - float(np.max(p))) <= 1e-12]
+            action = winners[0] if len(winners) == 1 else "defer"
+    elif policy_name == "posthoc_l2d":
+        # Narasimhan et al. (2022): post-hoc cost-sensitive learning-to-defer over C(a, s) without governance gates
+        costs = BASE_COST.copy()
+        costs[3, :3] = defer_cost
+        risks = costs @ p
+        best = float(np.min(risks))
+        action = next(a for a in TIE_ORDER if risks[ACTIONS.index(a)] <= best + 1e-12)
+    else:
+        raise ValueError(policy_name)
+    return action, (action in true_allowed)
+
+
+def save_sota_baselines(index, targets, contexts, inputs, predictions):
+    """Evaluate canonical crowd-consensus, selective-classification, abstention & L2D baselines (4-fold + 5-fold CV)."""
+    # 1. Fit GLAD across 4-fold leave-one-source-out splits
+    glad_preds = {}
+    for source in sorted({r["source_dataset"] for r in index}):
+        training = [r for r in index if r["source_dataset"] != source]
+        testing = [r for r in index if r["source_dataset"] == source]
+        posts = _glad_fit_and_predict(
+            tuple(inputs[r["audit_join_id"]] for r in training),
+            tuple(inputs[r["audit_join_id"]] for r in testing),
+        )
+        for row, post in zip(testing, posts):
+            glad_preds[row["audit_join_id"]] = post
+
+    specs = [
+        ("glad_direct", "GLAD EM / direct (Whitehill et al., 2009)", "glad", "direct"),
+        ("selective_threshold", "Selective-Threshold (Franc et al., 2023)", "dawid_skene", "selective_threshold"),
+        ("margin_rejector", "Margin-Abstention (Mao et al., 2024)", "adaptive", "margin_rejector"),
+        ("posthoc_l2d", "Post-Hoc Cost L2D (Narasimhan et al., 2022)", "dawid_skene", "posthoc_l2d"),
+        ("deciv_glad_risk", "DeCiv + GLAD / risk", "glad", "risk"),
+    ]
+
+    # 5-fold stratified splits (identical RNG seed and parent folds as save_five_fold_cv)
+    rng = np.random.default_rng(SPEC["bootstrap_seed"])
+    by_src = defaultdict(list)
+    for row in index:
+        if row["parent_id"] not in by_src[row["source_dataset"]]:
+            by_src[row["source_dataset"]].append(row["parent_id"])
+    parent_fold = {}
+    for src, plist in sorted(by_src.items()):
+        plist = sorted(plist)
+        perm = rng.permutation(len(plist))
+        for idx_pos, p_idx in enumerate(perm):
+            parent_fold[plist[p_idx]] = idx_pos % 5
+
+    cv5_folds = defaultdict(list)
+    for fold_id in range(5):
+        training = [r for r in index if parent_fold[r["parent_id"]] != fold_id]
+        testing = [r for r in index if parent_fold[r["parent_id"]] == fold_id]
+        tr_in = tuple(inputs[r["audit_join_id"]] for r in training)
+        te_in = tuple(inputs[r["audit_join_id"]] for r in testing)
+        successes, totals = Counter(), Counter()
+        for row in training:
+            for vote in inputs[row["audit_join_id"]].semantic_votes:
+                totals[vote.validator_id] += 1
+                successes[vote.validator_id] += (vote.status == targets[row["audit_join_id"]])
+        rel = {vid: (successes[vid] + 1) / (totals[vid] + 2) for vid in sorted(totals)}
+        ds_out = SemanticDawidSkeneEstimator().fit(tr_in).predict_proba(te_in)
+        glad_out = _glad_fit_and_predict(tr_in, te_in)
+
+        for sid, _, est_name, r_name in specs:
+            f_rows = []
+            for row, d_o, g_o in zip(testing, ds_out, glad_out):
+                key = row["audit_join_id"]
+                if est_name == "glad":
+                    post = g_o
+                elif est_name == "dawid_skene":
+                    post = [d_o.probability(s) for s in STATUSES]
+                else:
+                    post = aggregate(inputs[key].semantic_votes, rel, est_name)
+                if r_name in ("direct", "risk"):
+                    act, _, _, _, adm = route(post, contexts[key], r_name)
+                else:
+                    act, adm = _route_sota(post, contexts[key], r_name)
+                ref = reference_action(targets[key], contexts[key])
+                f_rows.append({"predicted_action": act, "reference_action": ref, "correct": int(act == ref), "false_accept": int(act == "accept" and ref != "accept"), "eligible": int(adm)})
+            cv5_folds[sid].append(summarize(f_rows))
+
+    out_rows = []
+    for sid, label, est_name, r_name in specs:
+        rows_4f = []
+        for row in index:
+            key = row["audit_join_id"]
+            post = glad_preds[key] if est_name == "glad" else predictions[est_name][key]
+            if r_name in ("direct", "risk"):
+                act, _, _, _, adm = route(post, contexts[key], r_name)
+            else:
+                act, adm = _route_sota(post, contexts[key], r_name)
+            ref = reference_action(targets[key], contexts[key])
+            rows_4f.append({"predicted_action": act, "reference_action": ref, "correct": int(act == ref), "false_accept": int(act == "accept" and ref != "accept"), "eligible": int(adm)})
+        s4 = summarize(rows_4f)
+        accs_5f = [float(m["accuracy"]) for m in cv5_folds[sid]]
+        fars_5f = [float(m["far"]) for m in cv5_folds[sid]]
+        out_rows.append({
+            "baseline_id": sid,
+            "label": label,
+            **s4,
+            "cv5_accuracy_mean": float(np.mean(accs_5f)),
+            "cv5_accuracy_std": float(np.std(accs_5f, ddof=1)),
+            "cv5_far_mean": float(np.mean(fars_5f)),
+            "cv5_far_std": float(np.std(fars_5f, ddof=1)),
+        })
+    write_csv("sota_baselines.csv", out_rows)
+
+
 def save_trace(index, targets, contexts, inputs, predictions):
     by_parent = defaultdict(list)
     for row in index:
@@ -411,6 +600,7 @@ def main():
     save_sensitivity(index, targets, contexts, predictions)
     save_five_fold_cv(index, targets, contexts, inputs)
     save_ablations(index, targets, contexts, predictions)
+    save_sota_baselines(index, targets, contexts, inputs, predictions)
     save_trace(index, targets, contexts, inputs, predictions)
     checks = targeted_checks(index, targets, contexts, inputs, predictions, rows)
     legacy = {r["audit_join_id"]: r["rubric_admission_action"] for r in read_rows("governance_targets_v2.csv")}

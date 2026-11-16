@@ -41,19 +41,23 @@ Rather than treating high classifier confidence as an automatic write permission
 
 ![Selectivity-Throughput Frontier](figures/admission_tradeoff.png)
 
-| Estimator / Router | 4-Fold Acc. (%) | FAR (%) ↓ | Accept Prec. (%) ↑ | Non-Defer (%) | Revise Rec. (%) | Violations ↓ | 5-Fold CV Acc. (%) |
+| Method / Routing Paradigm | 4-Fold Acc. (%) | FAR (%) ↓ | Accept Prec. (%) ↑ | Non-Defer (%) | Revise Rec. (%) | Violations ↓ | 5-Fold CV Acc. (%) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Majority / direct** | 75.56 | 10.55 | 45.22 | 80.50 | 83.78 | 221 | 75.56 ± 1.66 |
 | **Rel.-weighted / direct** | 77.06 | 13.56 | 40.75 | 89.72 | 87.78 | 265 | 77.78 ± 2.35 |
-| **Dawid–Skene / direct** | 71.78 | 14.79 | 36.07 | 98.17 | 93.33 | 330 | 77.44 ± 1.45 |
+| **GLAD EM / direct** (*Whitehill et al., 2009*) | 72.39 | 10.31 | 43.05 | 99.83 | 90.22 | 261 | 78.28 ± 2.32 |
+| **Dawid–Skene / direct** (*Dawid & Skene, 1979*) | 71.78 | 14.79 | 36.07 | 98.17 | 93.33 | 330 | 77.44 ± 1.45 |
+| **Selective-Threshold** (*Franc et al., 2023*) | 70.06 | 8.22 | 44.17 | 73.11 | 80.00 | 195 | 70.39 ± 2.10 |
+| **Margin-Abstention** (*Mao et al., 2024*) | 65.50 | 6.99 | 48.18 | 60.28 | 65.56 | 144 | 65.50 ± 2.13 |
+| **Post-Hoc Cost L2D** (*Narasimhan et al., 2022*) | 69.56 | 3.99 | 47.58 | 64.56 | 79.33 | 138 | 68.44 ± 1.60 |
 | **DeCiv Fixed / risk** | 41.17 | **0.06** | **97.87** | 19.56 | 24.22 | **0** | 41.17 ± 3.11 |
 | **DeCiv Adaptive / risk** | 46.61 | **0.06** | **97.87** | 25.00 | 46.00 | **0** | 45.94 ± 1.91 |
+| **DeCiv + GLAD / risk** | 67.17 | **0.06** | **97.87** | 45.83 | 54.22 | **0** | 66.17 ± 1.90 |
 | **DeCiv + Dawid–Skene / risk** | **76.33** | 0.18 | 95.16 | **56.89** | **79.33** | **0** | 75.44 ± 1.58 |
 
-- **Reducing Unvetted Ingestion**: Direct majority mapping reaches `75.56%` overall accuracy, yet admits `172` of `1,630` policy-inadmissible packets (`10.55%` false-acceptance rate, `45.22%` accept precision) when provenance is missing or broken.
+- **Why Purely Epistemic Abstention Is Not Enough**: Direct consensus and modern selective/deferral baselines (*Franc et al., 2023*; *Mao et al., 2024*; *Narasimhan et al., 2022*) still incur `3.99%–14.79%` false acceptance and `138–330` provenance violations when semantically supported claims carry missing or broken locators.
 - **Provenance-Constrained Risk Routing**: Combining metadata gates with asymmetric risk routing removes all eligibility violations (`0 / 1,800`) and lowers false acceptance to **`0.06%`** (`97.87%` accept precision).
-- **Adaptive Peer-Agreement Weighting**: Modulating historical verifier reliability by instance-level peer concordance increases repairable claim recovery from `24.22%` to **`46.00%`** (`+90%` relative gain) while keeping FAR at **`0.06%`**.
-- **Latent-Class Calibration**: Pairing four-class Dawid–Skene EM estimation with risk routing yields **`76.33%`** accuracy and **`56.89%`** non-deferral at **`0.18%`** FAR (`75.44 ± 1.58%` under 5-fold stratified CV).
+- **Four-Tier Pareto Staircase**: Across `DeCiv Fixed` (`41.17%`), `DeCiv Adaptive` (`46.61%`, `+90%` revision recovery), `DeCiv + GLAD` (`67.17%`), and `DeCiv + Dawid–Skene` (`76.33%`), stronger latent consensus smoothly expands resolution throughput while maintaining `0.06%–0.18%` FAR.
 
 ---
 

@@ -43,6 +43,13 @@ class TestDeCivReproducibility(unittest.TestCase):
         self.assertGreater(int(ab["adaptive_no_prov_gate"]["eligibility_violations"]), 40)
         self.assertGreater(int(ab["adaptive_no_repair_gate"]["eligibility_violations"]), 15)
 
+        with (RESULTS / "sota_baselines.csv").open(encoding="utf-8") as f:
+            sota = {r["baseline_id"]: r for r in csv.DictReader(f)}
+        self.assertEqual(len(sota), 5)
+        self.assertEqual(int(sota["deciv_glad_risk"]["eligibility_violations"]), 0)
+        self.assertAlmostEqual(float(sota["deciv_glad_risk"]["far"]), 1 / 1630, places=6)
+        self.assertGreater(int(sota["selective_threshold"]["eligibility_violations"]), 150)
+
     def test_predictions_completeness(self):
         with (RESULTS / "predictions.csv").open(encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
