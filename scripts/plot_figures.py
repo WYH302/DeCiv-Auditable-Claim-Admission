@@ -20,12 +20,14 @@ def main():
     FIGS.mkdir(parents=True, exist_ok=True)
     plt.rcParams.update({
         "font.family": "DejaVu Sans",
-        "font.size": 9,
-        "axes.labelsize": 9,
-        "axes.titlesize": 9.5,
-        "xtick.labelsize": 8,
-        "ytick.labelsize": 8,
-        "legend.fontsize": 7.5,
+        "font.size": 8.6,
+        "axes.labelsize": 8.6,
+        "axes.titlesize": 9.2,
+        "axes.titleweight": "bold",
+        "xtick.labelsize": 7.8,
+        "ytick.labelsize": 7.8,
+        "legend.fontsize": 7.3,
+        "axes.linewidth": 0.85,
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
         "axes.spines.top": False,
@@ -33,78 +35,87 @@ def main():
     })
     colors = ["#2b5c8f", "#d95f02", "#1b8a5a"]
 
-    # Figure 2: Admission tradeoff
+    # Figure 2: Selectivity-throughput frontier (6.30 x 2.68 in)
     data = rows("main_metrics.csv")
     metrics = {(r["method"], r["router"]): r for r in data}
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.0), layout="constrained")
-    for ax, router in zip(axes, ["direct", "risk"]):
-        labels = (
-            [("majority", "Majority / fixed"), ("reliability_weighted", "Reliability / adaptive"), ("dawid_skene", "Dawid\u2013Skene")]
-            if router == "direct"
-            else [("fixed", "Fixed / majority / reliability"), ("adaptive", "DeCiv Adaptive"), ("dawid_skene", "DeCiv + Dawid\u2013Skene")]
-        )
-        offsets = [(-36, -15), (-82, -3), (-64, 6)] if router == "direct" else [(-36, 8), (6, -13), (-34, -15)]
-        for j, (mode, label) in enumerate(labels):
-            r = metrics[(mode, router)]
-            x = 100 * float(r["non_defer_fraction"])
-            y = 100 * float(r["far"])
-            ax.scatter(x, y, s=56, color=colors[j], marker=["o", "s", "^"][j], label=label, zorder=3)
-            ax.annotate(f"({x:.1f}%, {y:.2f}%)", xy=(x, y), xytext=offsets[j], textcoords="offset points", fontsize=7.2, color="#1f2937")
-        ax.set(
-            xlabel="Non-defer resolution fraction (%)",
-            ylabel="False-acceptance rate (%)",
-            title="(a) Direct semantic mapping" if router == "direct" else "(b) Contextual risk routing",
-            xlim=(0, 108),
-            ylim=(0, 16.8 if router == "direct" else 0.23),
-        )
-        ax.grid(alpha=0.22)
-        ax.legend(loc="lower left" if router == "direct" else "upper left", frameon=False, fontsize=7.2)
+    sota = {r["baseline_id"]: r for r in rows("sota_baselines.csv")}
+    fig, axes = plt.subplots(1, 2, figsize=(6.30, 2.68), layout="constrained")
+    ax_a = axes[0]
+    pts_a = [
+        (100 * float(metrics[("majority", "direct")]["non_defer_fraction"]), 100 * float(metrics[("majority", "direct")]["far"]), "Majority / direct", "#2b5c8f", "o", (5, 2)),
+        (100 * float(metrics[("dawid_skene", "direct")]["non_defer_fraction"]), 100 * float(metrics[("dawid_skene", "direct")]["far"]), "Dawid\u2013Skene / direct", "#1b8a5a", "^", (-30, 6)),
+        (100 * float(sota["glad_direct"]["non_defer_fraction"]), 100 * float(sota["glad_direct"]["far"]), "GLAD EM / direct", "#7c3aed", "D", (-34, -15)),
+        (100 * float(sota["selective_threshold"]["non_defer_fraction"]), 100 * float(sota["selective_threshold"]["far"]), "Selective-Threshold (2023)", "#d95f02", "s", (5, -5)),
+        (100 * float(sota["margin_rejector"]["non_defer_fraction"]), 100 * float(sota["margin_rejector"]["far"]), "Margin-Abstention (2024)", "#e11d48", "v", (-68, -4)),
+        (100 * float(sota["posthoc_l2d"]["non_defer_fraction"]), 100 * float(sota["posthoc_l2d"]["far"]), "Post-Hoc Cost L2D (2022)", "#0f766e", "P", (-24, -14)),
+    ]
+    for x, y, lbl, col, mk, off in pts_a:
+        ax_a.scatter(x, y, s=46, color=col, marker=mk, label=lbl, zorder=3)
+        ax_a.annotate(f"({x:.1f}%, {y:.2f}%)", xy=(x, y), xytext=off, textcoords="offset points", fontsize=6.4, color="#1e293b")
+    ax_a.set(xlabel="Non-defer resolution fraction (%)", ylabel="False-acceptance rate (%)", title="(a) Direct & SOTA selective baselines", xlim=(0, 122), ylim=(0, 16.8))
+    ax_a.grid(alpha=0.24, color="#cbd5e1")
+    ax_a.legend(loc="upper left", frameon=False, fontsize=6.4, handletextpad=0.35, labelspacing=0.28)
+
+    ax_b = axes[1]
+    pts_b = [
+        (100 * float(metrics[("fixed", "risk")]["non_defer_fraction"]), 100 * float(metrics[("fixed", "risk")]["far"]), "DeCiv Fixed", "#2b5c8f", "o", (-22, 8)),
+        (100 * float(metrics[("adaptive", "risk")]["non_defer_fraction"]), 100 * float(metrics[("adaptive", "risk")]["far"]), "DeCiv Adaptive", "#d95f02", "s", (-8, -14)),
+        (100 * float(sota["deciv_glad_risk"]["non_defer_fraction"]), 100 * float(sota["deciv_glad_risk"]["far"]), "DeCiv + GLAD", "#7c3aed", "D", (6, -3)),
+        (100 * float(metrics[("dawid_skene", "risk")]["non_defer_fraction"]), 100 * float(metrics[("dawid_skene", "risk")]["far"]), "DeCiv + Dawid\u2013Skene", "#1b8a5a", "^", (6, -3)),
+    ]
+    ax_b.plot([p[0] for p in pts_b], [p[1] for p in pts_b], color="#64748b", linestyle="--", linewidth=1.1, zorder=2)
+    for x, y, lbl, col, mk, off in pts_b:
+        ax_b.scatter(x, y, s=50, color=col, marker=mk, label=lbl, zorder=3)
+        ax_b.annotate(f"({x:.1f}%, {y:.2f}%)", xy=(x, y), xytext=off, textcoords="offset points", fontsize=6.6, color="#1e293b")
+    ax_b.set(xlabel="Non-defer resolution fraction (%)", ylabel="False-acceptance rate (%)", title="(b) DeCiv contextual risk routing", xlim=(0, 112), ylim=(0, 0.285))
+    ax_b.grid(alpha=0.24, color="#cbd5e1")
+    ax_b.legend(loc="upper left", frameon=False, fontsize=6.5, handletextpad=0.35, labelspacing=0.26)
     fig.savefig(FIGS / "admission_tradeoff.pdf")
-    fig.savefig(FIGS / "admission_tradeoff.png", dpi=240)
+    fig.savefig(FIGS / "admission_tradeoff.png", dpi=300)
     plt.close(fig)
 
-    # Figure 3: Routing confusions
+    # Figure 3: Compact 2x2 four-action confusion matrices (6.30 x 3.32 in)
     data = rows("action_confusion.csv")
     actions = ["accept", "reject", "revise", "defer"]
-    ylabels = ["accept\n(n=170)", "reject\n(n=790)", "revise\n(n=450)", "defer\n(n=390)"]
-    fig, axes = plt.subplots(2, 2, figsize=(7.2, 5.4), layout="constrained")
-    configs = [
+    ylabels = ["accept (170)", "reject (790)", "revise (450)", "defer (390)"]
+    fig, axes = plt.subplots(2, 2, figsize=(6.30, 3.32), layout="constrained")
+    cfgs = [
         ("majority", "direct", "(a) Majority / direct"),
         ("fixed", "risk", "(b) DeCiv Fixed / risk"),
         ("adaptive", "risk", "(c) DeCiv Adaptive / risk"),
         ("dawid_skene", "risk", "(d) DeCiv + Dawid\u2013Skene / risk"),
     ]
-    for ax, (mode, router, title) in zip(axes.flat, configs):
+    for idx_ax, (ax, (mode, router, title)) in enumerate(zip(axes.flat, cfgs)):
         matrix = np.zeros((4, 4), dtype=int)
         for r in data:
             if r["method"] == mode and r["router"] == router:
                 matrix[actions.index(r["reference_action"]), actions.index(r["predicted_action"])] = int(r["count"])
         percentages = 100 * matrix / matrix.sum(axis=1, keepdims=True)
         ax.imshow(percentages, vmin=0, vmax=100, cmap="Blues", aspect="auto")
+        ax.set_xticks(np.arange(-0.5, 4, 1), minor=True)
+        ax.set_yticks(np.arange(-0.5, 4, 1), minor=True)
+        ax.grid(which="minor", color="white", linestyle="-", linewidth=1.3)
+        ax.tick_params(which="minor", bottom=False, left=False)
         for i in range(4):
             for j in range(4):
-                ax.text(
-                    j,
-                    i,
-                    f"{matrix[i,j]}\n({percentages[i,j]:.1f}%)",
-                    ha="center",
-                    va="center",
-                    fontsize=7.2,
-                    color="white" if percentages[i, j] > 55 else "#111827",
-                )
-        ax.set_xticks(range(4), actions)
-        ax.set_yticks(range(4), ylabels)
-        ax.set(xlabel="Recommended disposition", ylabel="Policy reference", title=title)
+                ax.text(j, i, f"{matrix[i,j]}\n({percentages[i,j]:.1f}%)", ha="center", va="center", fontsize=6.9, color="white" if percentages[i, j] > 55 else "#0f172a")
+        ax.set_xticks(range(4), actions if idx_ax >= 2 else [""] * 4)
+        ax.set_yticks(range(4), ylabels if idx_ax % 2 == 0 else [""] * 4)
+        ax.set_title(title, pad=4)
+        if idx_ax >= 2:
+            ax.set_xlabel("Recommended disposition")
+        if idx_ax % 2 == 0:
+            ax.set_ylabel("Policy reference")
         ax.tick_params(length=0)
     fig.savefig(FIGS / "routing_confusions.pdf")
-    fig.savefig(FIGS / "routing_confusions.png", dpi=240)
+    fig.savefig(FIGS / "routing_confusions.png", dpi=300)
     plt.close(fig)
 
-    # Figure 4: Cost sensitivity
+    # Figure 4: Deferral cost sensitivity (6.30 x 2.65 in)
     data = rows("cost_sensitivity.csv")
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.0), layout="constrained")
+    fig, axes = plt.subplots(1, 2, figsize=(6.30, 2.65), layout="constrained")
     for ax in axes:
-        ax.axvline(0.5, color="#6b7280", linestyle=":", linewidth=1.1, zorder=1)
+        ax.axvline(0.5, color="#64748b", linestyle=":", linewidth=1.1, zorder=1)
     for j, mode in enumerate(["fixed", "adaptive", "dawid_skene"]):
         rs = sorted([r for r in data if r["method"] == mode], key=lambda r: float(r["defer_cost"]))
         for ax, k in zip(axes, ["non_defer_fraction", "far"]):
@@ -116,33 +127,33 @@ def main():
                 marker=["o", "s", "^"][j],
                 linestyle=["-", "--", "-."][j],
                 linewidth=1.7,
-                markersize=4.8,
+                markersize=4.6,
                 zorder=3,
             )
             ax.set(
                 xlabel="Deferral cost parameter d",
                 ylabel="Non-defer fraction (%)" if k == "non_defer_fraction" else "False-acceptance rate (%)",
-                title="(a) Resolution throughput vs. deferral cost" if k == "non_defer_fraction" else "(b) False-acceptance rate vs. deferral cost",
-                ylim=(0, 80 if k == "non_defer_fraction" else 0.9),
+                title="(a) Resolution throughput vs. cost d" if k == "non_defer_fraction" else "(b) False-acceptance rate vs. cost d",
+                ylim=(0, 87 if k == "non_defer_fraction" else 0.9),
             )
             ax.set_xticks([0.1, 0.5, 1, 2])
-            ax.grid(alpha=0.22)
-    axes[0].text(0.54, 6, "d = 0.5 (default)", fontsize=7.2, color="#4b5563")
-    axes[1].text(0.54, 0.46, "d = 0.5 (default)", fontsize=7.2, color="#4b5563")
-    axes[0].legend(loc="upper left", frameon=False, fontsize=7.3)
-    axes[1].legend(loc="upper left", frameon=False, fontsize=7.3)
+            ax.grid(alpha=0.24, color="#cbd5e1")
+    axes[0].text(0.55, 6, "d = 0.5 (default)", fontsize=7.0, color="#475569")
+    axes[1].text(0.55, 0.46, "d = 0.5 (default)", fontsize=7.0, color="#475569")
+    axes[0].legend(loc="upper left", frameon=False, fontsize=7.1)
+    axes[1].legend(loc="upper left", frameon=False, fontsize=7.1)
     fig.savefig(FIGS / "routing_cost_sensitivity.pdf")
-    fig.savefig(FIGS / "routing_cost_sensitivity.png", dpi=240)
+    fig.savefig(FIGS / "routing_cost_sensitivity.png", dpi=300)
     plt.close(fig)
 
-    # Figure 5: 5-Fold Stratified CV & Component Ablation
+    # Figure 5: 5-Fold Stratified CV & Component Ablation (6.30 x 2.75 in)
     cv5 = {(r["method"], r["router"]): r for r in rows("five_fold_cv.csv")}
     ab = {r["variant_id"]: r for r in rows("ablation_metrics.csv")}
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.2), layout="constrained")
+    fig, axes = plt.subplots(1, 2, figsize=(6.30, 2.75), layout="constrained")
     ax0 = axes[0]
     m_specs = [
         (("majority", "direct"), "Majority Direct", "#94a3b8"),
-        (("fixed", "risk"), "DeCiv Fixed", "#3b82f6"),
+        (("fixed", "risk"), "DeCiv Fixed", "#2b5c8f"),
         (("adaptive", "risk"), "DeCiv Adaptive", "#d95f02"),
         (("dawid_skene", "risk"), "DeCiv + Dawid\u2013Skene", "#1b8a5a"),
     ]
@@ -163,25 +174,13 @@ def main():
             100 * float(r5["accuracy_std"]),
             100 * float(r5["recall_revise_std"]),
         ]
-        ax0.bar(
-            x_pos + (idx_m - 1.5) * bar_w,
-            means,
-            width=bar_w,
-            yerr=stds,
-            capsize=2.2,
-            color=m_col,
-            edgecolor="white",
-            linewidth=0.5,
-            label=m_lbl,
-            error_kw={"elinewidth": 0.8, "ecolor": "#334155"},
-            zorder=3,
-        )
+        ax0.bar(x_pos + (idx_m - 1.5) * bar_w, means, width=bar_w, yerr=stds, capsize=2.0, color=m_col, edgecolor="white", linewidth=0.5, label=m_lbl, error_kw={"elinewidth": 0.8, "ecolor": "#334155"}, zorder=3)
     ax0.set_xticks(x_pos, cat_labels)
     ax0.set_ylim(0, 128)
     ax0.set_ylabel("Score across 5 folds (%)")
     ax0.set_title("(a) 5-Fold stratified CV (mean \u00b1 SD)")
-    ax0.grid(axis="y", alpha=0.22)
-    ax0.legend(loc="upper center", ncol=2, frameon=False, fontsize=6.6)
+    ax0.grid(axis="y", alpha=0.24, color="#cbd5e1")
+    ax0.legend(loc="upper center", ncol=2, frameon=False, fontsize=6.4, columnspacing=0.8, handletextpad=0.35)
 
     ax1 = axes[1]
     ab_keys = [
@@ -199,17 +198,17 @@ def main():
     ax1.barh(y_pos + bh / 2, prec_vals, height=bh, color="#1b8a5a", label="Accept Prec. (%)", zorder=3)
     ax1.barh(y_pos - bh / 2, rev_vals, height=bh, color="#d95f02", label="Revise Recall (%)", zorder=3)
     for y_i, p_val, r_val, f_val in zip(y_pos, prec_vals, rev_vals, far_vals):
-        ax1.text(max(p_val, r_val) + 1.8, y_i, f"FAR {f_val:.2f}%", va="center", ha="left", fontsize=6.7, color="#1f2937")
+        ax1.text(max(p_val, r_val) + 1.8, y_i, f"FAR {f_val:.2f}%", va="center", ha="left", fontsize=6.5, color="#1e293b")
     ax1.set_yticks(y_pos, [lbl for _, lbl in ab_keys])
-    ax1.set_xlim(0, 134)
+    ax1.set_xlim(0, 138)
     ax1.set_ylim(-0.6, 5.45)
     ax1.set_xlabel("Metric score (%) [annotated with FAR]")
     ax1.set_title("(b) Component ablation impact")
-    ax1.grid(axis="x", alpha=0.22)
-    ax1.legend(loc="upper right", ncol=2, frameon=False, fontsize=6.5)
+    ax1.grid(axis="x", alpha=0.24, color="#cbd5e1")
+    ax1.legend(loc="upper right", ncol=2, frameon=False, fontsize=6.4, columnspacing=0.7, handletextpad=0.35)
 
     fig.savefig(FIGS / "ablation_and_cv.pdf")
-    fig.savefig(FIGS / "ablation_and_cv.png", dpi=240)
+    fig.savefig(FIGS / "ablation_and_cv.png", dpi=300)
     plt.close(fig)
     print("Generated publication figures in figures/ directory.")
 
