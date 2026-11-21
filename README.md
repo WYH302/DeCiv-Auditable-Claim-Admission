@@ -31,7 +31,7 @@ Rather than treating high classifier confidence as an automatic write permission
    - `defer` (*Epistemic Quarantine*): Ambiguous claims or supported claims with missing/broken source locators are quarantined for primary-source review.
 3. **Dual-Plane Memory Commitment**:
    - **Retrieval Plane**: Indexes strictly `accept` claims so downstream RAG contexts remain clean.
-   - **Accountability Plane**: Records all four dispositions in an append-only SHA-256 content-addressed audit log (`~16.3 μs` per decision on standard CPU hardware, requiring `0.00` additional GPU hours at the routing layer).
+   - **Accountability Plane**: Records all four dispositions in an append-only SHA-256 content-addressed audit log (`~19.1 μs` per decision on standard CPU hardware, requiring `0.00` additional GPU hours at the routing layer).
 
 ---
 
@@ -83,7 +83,7 @@ Sweeping the deferral penalty $d \in \{0.1, 0.5, 1.0, 2.0\}$ provides a smooth o
 
 ![Multi-Metric SOTA Comparison and Component Ablations](figures/ablation_and_cv.png)
 
-Removing individual components confirms their complementary roles (`results/ablation_metrics.csv`), while `results/lambda_sensitivity.csv` verifies $\lambda = 0.50$ optimality on the strict zero-false-rejection frontier and `results/module_efficiency.csv` profiles microsecond CPU latencies (`16.27–77.27 μs/packet`, `0.00` additional GPU hours):
+Removing individual components confirms their complementary roles (`results/ablation_metrics.csv`), while `results/lambda_sensitivity.csv` verifies $\lambda = 0.50$ optimality on the strict zero-false-rejection frontier and `results/module_efficiency.csv` profiles microsecond CPU latencies (`19.14–101.12 μs/packet`, `0.00` additional GPU hours):
 - **w/o Peer-Agreement Amplification**: Revision recall drops by `-21.78 pp` (`46.00% -> 24.22%`).
 - **w/o Provenance Gate**: FAR rises from `0.06%` to `2.94%` (`47` provenance violations; accept precision drops to `48.94%`).
 - **w/o Repairability Gate**: Produces `20` invalid revision referrals on Adaptive (`76` on Dawid–Skene).
@@ -108,7 +108,7 @@ Removing individual components confirms their complementary roles (`results/abla
    - 引入**共识放大自适应加权（Consensus-Amplified Adaptive Weighting）**，在不放宽 `0.06%` 误接收率的前提下，将可修复声明的召回率从 `24.22%` 提升至 `46.00%`。
 3. **双平面记忆提交（Dual-Plane Memory Commitment）**
    - **检索平面（Retrieval Plane）**：仅允许通过全部溯源核验的 `accept` 声明写入可信知识库，降低下游 RAG 幻觉传播风险。
-   - **问责平面（Accountability Plane）**：对全部四类处置结果生成包含输入摘要、后验分布、策略配置与前序版本哈希的 SHA-256 审计记录（单次决策耗时约 `16.3 μs`）。
+   - **问责平面（Accountability Plane）**：对全部四类处置结果生成包含输入摘要、后验分布、策略配置与前序版本哈希的 SHA-256 审计记录（单次决策耗时约 `19.1 μs`）。
 
 ---
 
