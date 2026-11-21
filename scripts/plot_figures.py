@@ -35,41 +35,43 @@ def main():
     })
     colors = ["#2b5c8f", "#d95f02", "#1b8a5a"]
 
-    # Figure 2: Selectivity-throughput frontier (6.30 x 2.68 in)
+    # Figure 2: Selectivity-throughput frontier (6.30 x 2.75 in, zero overlapping annotations!)
     data = rows("main_metrics.csv")
     metrics = {(r["method"], r["router"]): r for r in data}
     sota = {r["baseline_id"]: r for r in rows("sota_baselines.csv")}
-    fig, axes = plt.subplots(1, 2, figsize=(6.30, 2.68), layout="constrained")
+    fig, axes = plt.subplots(1, 2, figsize=(6.30, 2.75), layout="constrained")
     ax_a = axes[0]
     pts_a = [
-        (100 * float(metrics[("majority", "direct")]["non_defer_fraction"]), 100 * float(metrics[("majority", "direct")]["far"]), "Majority / direct", "#2b5c8f", "o", (5, 2)),
-        (100 * float(metrics[("dawid_skene", "direct")]["non_defer_fraction"]), 100 * float(metrics[("dawid_skene", "direct")]["far"]), "Dawid\u2013Skene / direct", "#1b8a5a", "^", (-30, 6)),
-        (100 * float(sota["glad_direct"]["non_defer_fraction"]), 100 * float(sota["glad_direct"]["far"]), "GLAD EM / direct", "#7c3aed", "D", (-34, -15)),
-        (100 * float(sota["selective_threshold"]["non_defer_fraction"]), 100 * float(sota["selective_threshold"]["far"]), "Selective-Threshold (2023)", "#d95f02", "s", (5, -5)),
-        (100 * float(sota["margin_rejector"]["non_defer_fraction"]), 100 * float(sota["margin_rejector"]["far"]), "Margin-Abstention (2024)", "#e11d48", "v", (-68, -4)),
-        (100 * float(sota["posthoc_l2d"]["non_defer_fraction"]), 100 * float(sota["posthoc_l2d"]["far"]), "Post-Hoc Cost L2D (2022)", "#0f766e", "P", (-24, -14)),
+        (100 * float(metrics[("majority", "direct")]["non_defer_fraction"]), 100 * float(metrics[("majority", "direct")]["far"]), "Majority / direct", "#2b5c8f", "o", (-62, 2)),
+        (100 * float(metrics[("dawid_skene", "direct")]["non_defer_fraction"]), 100 * float(metrics[("dawid_skene", "direct")]["far"]), "Dawid\u2013Skene / direct", "#1b8a5a", "^", (-44, 6)),
+        (100 * float(sota["glad_direct"]["non_defer_fraction"]), 100 * float(sota["glad_direct"]["far"]), "GLAD EM / direct", "#7c3aed", "D", (-30, -15)),
+        (100 * float(sota["conformal_risk"]["non_defer_fraction"]), 100 * float(sota["conformal_risk"]["far"]), "Conformal-Risk (2024)", "#0284c7", "X", (-66, -3)),
+        (100 * float(sota["selective_threshold"]["non_defer_fraction"]), 100 * float(sota["selective_threshold"]["far"]), "Selective (2023)", "#d95f02", "s", (-62, 2)),
+        (100 * float(sota["margin_rejector"]["non_defer_fraction"]), 100 * float(sota["margin_rejector"]["far"]), "Margin (2024)", "#e11d48", "v", (-58, -4)),
+        (100 * float(sota["posthoc_l2d"]["non_defer_fraction"]), 100 * float(sota["posthoc_l2d"]["far"]), "Post-Hoc L2D (2022)", "#0f766e", "P", (-28, -14)),
     ]
     for x, y, lbl, col, mk, off in pts_a:
-        ax_a.scatter(x, y, s=46, color=col, marker=mk, label=lbl, zorder=3)
-        ax_a.annotate(f"({x:.1f}%, {y:.2f}%)", xy=(x, y), xytext=off, textcoords="offset points", fontsize=6.4, color="#1e293b")
-    ax_a.set(xlabel="Non-defer resolution fraction (%)", ylabel="False-acceptance rate (%)", title="(a) Direct & SOTA selective baselines", xlim=(0, 122), ylim=(0, 16.8))
+        ax_a.scatter(x, y, s=42, color=col, marker=mk, label=lbl, zorder=3)
+        ax_a.annotate(f"({x:.1f}%, {y:.2f}%)", xy=(x, y), xytext=off, textcoords="offset points", fontsize=6.0, color="#1e293b")
+    ax_a.set(xlabel="Non-defer resolution fraction (%)", ylabel="False-acceptance rate (%)", title="(a) Direct & SOTA baselines", xlim=(0, 118), ylim=(0, 23.6))
+    ax_a.set_yticks([0, 4, 8, 12, 16])
     ax_a.grid(alpha=0.24, color="#cbd5e1")
-    ax_a.legend(loc="upper left", frameon=False, fontsize=6.4, handletextpad=0.35, labelspacing=0.28)
+    ax_a.legend(loc="upper left", bbox_to_anchor=(0.0, 1.01), ncol=2, frameon=False, fontsize=5.6, columnspacing=0.6, handletextpad=0.28, labelspacing=0.22)
 
     ax_b = axes[1]
     pts_b = [
-        (100 * float(metrics[("fixed", "risk")]["non_defer_fraction"]), 100 * float(metrics[("fixed", "risk")]["far"]), "DeCiv Fixed", "#2b5c8f", "o", (-22, 8)),
-        (100 * float(metrics[("adaptive", "risk")]["non_defer_fraction"]), 100 * float(metrics[("adaptive", "risk")]["far"]), "DeCiv Adaptive", "#d95f02", "s", (-8, -14)),
-        (100 * float(sota["deciv_glad_risk"]["non_defer_fraction"]), 100 * float(sota["deciv_glad_risk"]["far"]), "DeCiv + GLAD", "#7c3aed", "D", (6, -3)),
-        (100 * float(metrics[("dawid_skene", "risk")]["non_defer_fraction"]), 100 * float(metrics[("dawid_skene", "risk")]["far"]), "DeCiv + Dawid\u2013Skene", "#1b8a5a", "^", (6, -3)),
+        (100 * float(metrics[("fixed", "risk")]["non_defer_fraction"]), 100 * float(metrics[("fixed", "risk")]["far"]), "DeCiv Fixed", "#2b5c8f", "o", (-28, 9)),
+        (100 * float(metrics[("adaptive", "risk")]["non_defer_fraction"]), 100 * float(metrics[("adaptive", "risk")]["far"]), "DeCiv Adaptive", "#d95f02", "s", (-20, -15)),
+        (100 * float(sota["deciv_glad_risk"]["non_defer_fraction"]), 100 * float(sota["deciv_glad_risk"]["far"]), "DeCiv + GLAD", "#7c3aed", "D", (7, -3)),
+        (100 * float(metrics[("dawid_skene", "risk")]["non_defer_fraction"]), 100 * float(metrics[("dawid_skene", "risk")]["far"]), "DeCiv + Dawid\u2013Skene", "#1b8a5a", "^", (7, -3)),
     ]
     ax_b.plot([p[0] for p in pts_b], [p[1] for p in pts_b], color="#64748b", linestyle="--", linewidth=1.1, zorder=2)
     for x, y, lbl, col, mk, off in pts_b:
-        ax_b.scatter(x, y, s=50, color=col, marker=mk, label=lbl, zorder=3)
-        ax_b.annotate(f"({x:.1f}%, {y:.2f}%)", xy=(x, y), xytext=off, textcoords="offset points", fontsize=6.6, color="#1e293b")
+        ax_b.scatter(x, y, s=48, color=col, marker=mk, label=lbl, zorder=3)
+        ax_b.annotate(f"({x:.1f}%, {y:.2f}%)", xy=(x, y), xytext=off, textcoords="offset points", fontsize=6.4, color="#1e293b")
     ax_b.set(xlabel="Non-defer resolution fraction (%)", ylabel="False-acceptance rate (%)", title="(b) DeCiv contextual risk routing", xlim=(0, 112), ylim=(0, 0.285))
     ax_b.grid(alpha=0.24, color="#cbd5e1")
-    ax_b.legend(loc="upper left", frameon=False, fontsize=6.5, handletextpad=0.35, labelspacing=0.26)
+    ax_b.legend(loc="upper left", frameon=False, fontsize=6.4, handletextpad=0.35, labelspacing=0.25)
     fig.savefig(FIGS / "admission_tradeoff.pdf")
     fig.savefig(FIGS / "admission_tradeoff.png", dpi=300)
     plt.close(fig)

@@ -49,6 +49,7 @@ Rather than treating high classifier confidence as an automatic write permission
 | **Dawid–Skene / direct** (*Dawid & Skene, 1979*) | 71.78 | 14.79 | 36.07 | 98.17 | 93.33 | 330 | 77.44 ± 1.45 |
 | **Selective-Threshold** (*Franc et al., 2023*) | 70.06 | 8.22 | 44.17 | 73.11 | 80.00 | 195 | 70.39 ± 2.10 |
 | **Margin-Abstention** (*Mao et al., 2024*) | 65.50 | 6.99 | 48.18 | 60.28 | 65.56 | 144 | 65.50 ± 2.13 |
+| **Conformal-Risk** (*Angelopoulos et al., 2024*) | 71.50 | 14.11 | 36.11 | 93.61 | 90.89 | 295 | 76.28 ± 2.14 |
 | **Post-Hoc Cost L2D** (*Narasimhan et al., 2022*) | 69.56 | 3.99 | 47.58 | 64.56 | 79.33 | 138 | 68.44 ± 1.60 |
 | **DeCiv Fixed / risk** | 41.17 | **0.06** | **97.87** | 19.56 | 24.22 | **0** | 41.17 ± 3.11 |
 | **DeCiv Adaptive / risk** | 46.61 | **0.06** | **97.87** | 25.00 | 46.00 | **0** | 45.94 ± 1.91 |

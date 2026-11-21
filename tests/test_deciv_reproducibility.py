@@ -45,10 +45,11 @@ class TestDeCivReproducibility(unittest.TestCase):
 
         with (RESULTS / "sota_baselines.csv").open(encoding="utf-8") as f:
             sota = {r["baseline_id"]: r for r in csv.DictReader(f)}
-        self.assertEqual(len(sota), 5)
+        self.assertEqual(len(sota), 6)
         self.assertEqual(int(sota["deciv_glad_risk"]["eligibility_violations"]), 0)
         self.assertAlmostEqual(float(sota["deciv_glad_risk"]["far"]), 1 / 1630, places=6)
         self.assertGreater(int(sota["selective_threshold"]["eligibility_violations"]), 150)
+        self.assertGreater(int(sota["conformal_risk"]["eligibility_violations"]), 250)
 
     def test_predictions_completeness(self):
         with (RESULTS / "predictions.csv").open(encoding="utf-8") as f:

@@ -407,8 +407,8 @@ def _glad_fit_and_predict(train_inputs, test_inputs, max_iter=60, tol=1e-6):
     return posteriors
 
 
-def _route_sota(posterior, context, policy_name, defer_cost=0.5):
-    """Canonical SOTA selective classification, abstention, and ungated L2D policies."""
+def _route_sota(posterior, context, policy_name, defer_cost=0.5, conformal_q=0.90):
+    """Canonical SOTA selective classification, abstention, conformal risk, and ungated L2D policies."""
     true_allowed, _ = eligible(context)
     p = np.asarray(posterior, dtype=float)
     if policy_name == "selective_threshold":
@@ -426,6 +426,10 @@ def _route_sota(posterior, context, policy_name, defer_cost=0.5):
         else:
             winners = [ACTIONS[j] for j, v in enumerate(p) if abs(v - float(np.max(p))) <= 1e-12]
             action = winners[0] if len(winners) == 1 else "defer"
+    elif policy_name == "conformal_risk":
+        # Angelopoulos et al. (ICLR 2024): split-conformal prediction-set singleton abstention at calibrated quantile q_hat
+        c_set = [ACTIONS[j] for j, v in enumerate(p) if (1.0 - float(v)) <= conformal_q + 1e-12]
+        action = c_set[0] if len(c_set) == 1 else "defer"
     elif policy_name == "posthoc_l2d":
         # Narasimhan et al. (2022): post-hoc cost-sensitive learning-to-defer over C(a, s) without governance gates
         costs = BASE_COST.copy()
@@ -438,24 +442,38 @@ def _route_sota(posterior, context, policy_name, defer_cost=0.5):
     return action, (action in true_allowed)
 
 
+def _conformal_quantile(train_rows, ds_train_outputs, targets, alpha=0.10):
+    """Finite-sample split-conformal quantile q_hat for nonconformity score 1 - q_DS(y | x)."""
+    scores = [
+        1.0 - float(d_o.probability(targets[r["audit_join_id"]]))
+        for r, d_o in zip(train_rows, ds_train_outputs)
+    ]
+    n = len(scores)
+    level = min(1.0, float(np.ceil((n + 1) * (1.0 - alpha))) / n)
+    return float(np.quantile(scores, level, method="higher"))
+
+
 def save_sota_baselines(index, targets, contexts, inputs, predictions):
-    """Evaluate canonical crowd-consensus, selective-classification, abstention & L2D baselines (4-fold + 5-fold CV)."""
-    # 1. Fit GLAD across 4-fold leave-one-source-out splits
+    """Evaluate canonical crowd-consensus, selective-classification, conformal, abstention & L2D baselines (4-fold + 5-fold CV)."""
+    # 1. Fit GLAD & fold-calibrated conformal quantiles across 4-fold leave-one-source-out splits
     glad_preds = {}
+    conformal_q_4f = {}
     for source in sorted({r["source_dataset"] for r in index}):
         training = [r for r in index if r["source_dataset"] != source]
         testing = [r for r in index if r["source_dataset"] == source]
-        posts = _glad_fit_and_predict(
-            tuple(inputs[r["audit_join_id"]] for r in training),
-            tuple(inputs[r["audit_join_id"]] for r in testing),
-        )
+        tr_in = tuple(inputs[r["audit_join_id"]] for r in training)
+        te_in = tuple(inputs[r["audit_join_id"]] for r in testing)
+        posts = _glad_fit_and_predict(tr_in, te_in)
         for row, post in zip(testing, posts):
             glad_preds[row["audit_join_id"]] = post
+        ds_tr = SemanticDawidSkeneEstimator().fit(tr_in).predict_proba(tr_in)
+        conformal_q_4f[source] = _conformal_quantile(training, ds_tr, targets, alpha=0.10)
 
     specs = [
         ("glad_direct", "GLAD EM / direct (Whitehill et al., 2009)", "glad", "direct"),
         ("selective_threshold", "Selective-Threshold (Franc et al., 2023)", "dawid_skene", "selective_threshold"),
         ("margin_rejector", "Margin-Abstention (Mao et al., 2024)", "adaptive", "margin_rejector"),
+        ("conformal_risk", "Conformal-Risk (Angelopoulos et al., 2024)", "dawid_skene", "conformal_risk"),
         ("posthoc_l2d", "Post-Hoc Cost L2D (Narasimhan et al., 2022)", "dawid_skene", "posthoc_l2d"),
         ("deciv_glad_risk", "DeCiv + GLAD / risk", "glad", "risk"),
     ]
@@ -485,7 +503,10 @@ def save_sota_baselines(index, targets, contexts, inputs, predictions):
                 totals[vote.validator_id] += 1
                 successes[vote.validator_id] += (vote.status == targets[row["audit_join_id"]])
         rel = {vid: (successes[vid] + 1) / (totals[vid] + 2) for vid in sorted(totals)}
-        ds_out = SemanticDawidSkeneEstimator().fit(tr_in).predict_proba(te_in)
+        ds_est = SemanticDawidSkeneEstimator().fit(tr_in)
+        ds_tr_out = ds_est.predict_proba(tr_in)
+        ds_out = ds_est.predict_proba(te_in)
+        q_hat_5f = _conformal_quantile(training, ds_tr_out, targets, alpha=0.10)
         glad_out = _glad_fit_and_predict(tr_in, te_in)
 
         for sid, _, est_name, r_name in specs:
@@ -501,7 +522,7 @@ def save_sota_baselines(index, targets, contexts, inputs, predictions):
                 if r_name in ("direct", "risk"):
                     act, _, _, _, adm = route(post, contexts[key], r_name)
                 else:
-                    act, adm = _route_sota(post, contexts[key], r_name)
+                    act, adm = _route_sota(post, contexts[key], r_name, conformal_q=q_hat_5f)
                 ref = reference_action(targets[key], contexts[key])
                 f_rows.append({"predicted_action": act, "reference_action": ref, "correct": int(act == ref), "false_accept": int(act == "accept" and ref != "accept"), "eligible": int(adm)})
             cv5_folds[sid].append(summarize(f_rows))
@@ -515,7 +536,7 @@ def save_sota_baselines(index, targets, contexts, inputs, predictions):
             if r_name in ("direct", "risk"):
                 act, _, _, _, adm = route(post, contexts[key], r_name)
             else:
-                act, adm = _route_sota(post, contexts[key], r_name)
+                act, adm = _route_sota(post, contexts[key], r_name, conformal_q=conformal_q_4f[row["source_dataset"]])
             ref = reference_action(targets[key], contexts[key])
             rows_4f.append({"predicted_action": act, "reference_action": ref, "correct": int(act == ref), "false_accept": int(act == "accept" and ref != "accept"), "eligible": int(adm)})
         s4 = summarize(rows_4f)
