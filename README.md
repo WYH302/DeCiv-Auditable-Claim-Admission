@@ -186,6 +186,21 @@ python -m unittest discover -s tests -v
 
 ---
 
+## Citation | 引用格式
+
+If you find this reference implementation or benchmark useful in your research, we would be grateful if you consider citing our work (metadata will be updated upon formal publication):
+
+```bibtex
+@article{deciv2026admission,
+  title   = {DeCiv: Auditable Claim Admission for Persistent Knowledge Stores via Epistemic--Governance Decoupling},
+  author  = {DeCiv Contributors},
+  year    = {2026},
+  note    = {Reference implementation available at https://github.com/WYH302/DeCiv-Auditable-Claim-Admission}
+}
+```
+
+---
+
 ## License & Attribution | 开源协议与致谢
 
 Released under the [MIT License](LICENSE). Please refer to [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for upstream dataset citations and license terms (FEVER, TruthfulQA, HotpotQA, and Wikipedia Revisions).
