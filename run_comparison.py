@@ -11,6 +11,7 @@ import hashlib
 import json
 import math
 import sys
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -532,6 +533,97 @@ def save_sota_baselines(index, targets, contexts, inputs, predictions):
     write_csv("sota_baselines.csv", out_rows)
 
 
+def save_lambda_and_efficiency(index, targets, contexts, inputs):
+    """Measure adaptive concordance strength sweep (lambda) and per-module online latency."""
+    sources = sorted({r["source_dataset"] for r in index})
+    fold_rel = {}
+    for src in sources:
+        tr = [r for r in index if r["source_dataset"] != src]
+        succ, tot = Counter(), Counter()
+        for r in tr:
+            for v in inputs[r["audit_join_id"]].semantic_votes:
+                tot[v.validator_id] += 1
+                succ[v.validator_id] += (v.status == targets[r["audit_join_id"]])
+        fold_rel[src] = {vid: (succ[vid] + 1) / (tot[vid] + 2) for vid in sorted(tot)}
+
+    lam_rows = []
+    for lam in (0.0, 0.25, 0.50, 0.75, 0.85, 0.90, 0.95):
+        rows = []
+        false_rej_on_acc = 0
+        for r in index:
+            k = r["audit_join_id"]
+            p = aggregate(inputs[k].semantic_votes, fold_rel[r["source_dataset"]], "adaptive", strength=lam)
+            act, _, _, _, adm = route(p, contexts[k], "risk")
+            ref = reference_action(targets[k], contexts[k])
+            if ref == "accept" and act in ("reject", "revise"):
+                false_rej_on_acc += 1
+            rows.append({
+                "predicted_action": act,
+                "reference_action": ref,
+                "correct": int(act == ref),
+                "false_accept": int(act == "accept" and ref != "accept"),
+                "eligible": int(adm),
+            })
+        s = summarize(rows)
+        lam_rows.append({"lambda": lam, "false_reject_on_accept": false_rej_on_acc, **s})
+    write_csv("lambda_sensitivity.csv", lam_rows)
+
+    # Per-module microsecond latency benchmark averaged over 10 full passes (18,000 packet evaluations)
+    n_pkts = len(index)
+    reps = 10
+    votes_list = [inputs[r["audit_join_id"]].semantic_votes for r in index]
+    ctx_list = [contexts[r["audit_join_id"]] for r in index]
+    rel0 = fold_rel[sources[0]]
+    tr0 = tuple(inputs[r["audit_join_id"]] for r in index if r["source_dataset"] != sources[0])
+    all_in = tuple(inputs[r["audit_join_id"]] for r in index)
+
+    t0 = time.perf_counter()
+    for _ in range(reps):
+        posts_fix = [aggregate(v, rel0, "fixed") for v in votes_list]
+    t_fix = (time.perf_counter() - t0) * 1e6 / (n_pkts * reps)
+
+    t0 = time.perf_counter()
+    for _ in range(reps):
+        posts_adp = [aggregate(v, rel0, "adaptive", strength=0.5) for v in votes_list]
+    t_adp = (time.perf_counter() - t0) * 1e6 / (n_pkts * reps)
+
+    t0 = time.perf_counter()
+    ds_est = SemanticDawidSkeneEstimator().fit(tr0)
+    t_ds_fit = time.perf_counter() - t0
+    t0 = time.perf_counter()
+    for _ in range(reps):
+        _ = ds_est.predict_proba(all_in)
+    t_ds = (time.perf_counter() - t0) * 1e6 / (n_pkts * reps)
+
+    t0 = time.perf_counter()
+    for _ in range(reps):
+        _ = [eligible(c) for c in ctx_list]
+    t_gate = (time.perf_counter() - t0) * 1e6 / (n_pkts * reps)
+
+    t0 = time.perf_counter()
+    for _ in range(reps):
+        _ = [route(p, c, "risk") for p, c in zip(posts_adp, ctx_list)]
+    t_route = (time.perf_counter() - t0) * 1e6 / (n_pkts * reps)
+
+    t0 = time.perf_counter()
+    for _ in range(reps):
+        _ = [digest({"p": p, "c": c}) for p, c in zip(posts_adp, ctx_list)]
+    t_hash = (time.perf_counter() - t0) * 1e6 / (n_pkts * reps)
+
+    eff_rows = [
+        {"module": "Stage I: Fixed consensus", "complexity": "O(K|S|)", "online_us": round(t_fix, 2), "offline_fit_s": 0.0, "gpu_hours": 0.0},
+        {"module": "Stage I: Adaptive concordance (lambda=0.5)", "complexity": "O(K^2)", "online_us": round(t_adp, 2), "offline_fit_s": 0.0, "gpu_hours": 0.0},
+        {"module": "Stage I: Dawid-Skene EM", "complexity": "O(K|S|)", "online_us": round(t_ds, 2), "offline_fit_s": round(t_ds_fit, 3), "gpu_hours": 0.0},
+        {"module": "Stage IIa: Provenance & repairability gate", "complexity": "O(1)", "online_us": round(t_gate, 2), "offline_fit_s": 0.0, "gpu_hours": 0.0},
+        {"module": "Stage IIb: Asymmetric expected-risk router", "complexity": "O(|A||S|)", "online_us": round(max(0.0, t_route - t_gate), 2), "offline_fit_s": 0.0, "gpu_hours": 0.0},
+        {"module": "Accountability Plane: SHA-256 hash chain", "complexity": "O(|x|)", "online_us": round(t_hash, 2), "offline_fit_s": 0.0, "gpu_hours": 0.0},
+        {"module": "End-to-End: DeCiv Fixed / risk", "complexity": "O(K|S|+|x|)", "online_us": round(t_fix + t_route + t_hash, 2), "offline_fit_s": 0.0, "gpu_hours": 0.0},
+        {"module": "End-to-End: DeCiv Adaptive / risk", "complexity": "O(K^2+|x|)", "online_us": round(t_adp + t_route + t_hash, 2), "offline_fit_s": 0.0, "gpu_hours": 0.0},
+        {"module": "End-to-End: DeCiv + Dawid-Skene / risk", "complexity": "O(K|S|+|x|)", "online_us": round(t_ds + t_route + t_hash, 2), "offline_fit_s": round(t_ds_fit, 3), "gpu_hours": 0.0},
+    ]
+    write_csv("module_efficiency.csv", eff_rows)
+
+
 def save_trace(index, targets, contexts, inputs, predictions):
     by_parent = defaultdict(list)
     for row in index:
@@ -601,6 +693,7 @@ def main():
     save_five_fold_cv(index, targets, contexts, inputs)
     save_ablations(index, targets, contexts, predictions)
     save_sota_baselines(index, targets, contexts, inputs, predictions)
+    save_lambda_and_efficiency(index, targets, contexts, inputs)
     save_trace(index, targets, contexts, inputs, predictions)
     checks = targeted_checks(index, targets, contexts, inputs, predictions, rows)
     legacy = {r["audit_join_id"]: r["rubric_admission_action"] for r in read_rows("governance_targets_v2.csv")}

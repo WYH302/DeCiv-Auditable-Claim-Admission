@@ -68,6 +68,19 @@ class TestDeCivReproducibility(unittest.TestCase):
         self.assertEqual(len(clean["audit_record_hash"]), 64)
         self.assertEqual(len(drop["audit_record_hash"]), 64)
 
+    def test_lambda_sweep_and_module_efficiency(self):
+        with (RESULTS / "lambda_sensitivity.csv").open(encoding="utf-8") as f:
+            lam_rows = {float(r["lambda"]): r for r in csv.DictReader(f)}
+        self.assertIn(0.5, lam_rows)
+        self.assertEqual(int(lam_rows[0.5]["false_reject_on_accept"]), 0)
+        self.assertAlmostEqual(float(lam_rows[0.5]["far"]), 1 / 1630, places=6)
+
+        with (RESULTS / "module_efficiency.csv").open(encoding="utf-8") as f:
+            eff_rows = list(csv.DictReader(f))
+        self.assertEqual(len(eff_rows), 9)
+        for r in eff_rows:
+            self.assertEqual(float(r["gpu_hours"]), 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

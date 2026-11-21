@@ -1,11 +1,11 @@
-# DeCiv: Auditable Claim Admission for Persistent Knowledge Stores
-### 面向持久知识库的可审计四动作风险感知声明准入参考实现
+# DeCiv: Auditable Claim Admission for Persistent Knowledge Stores via Epistemic–Governance Decoupling
+### 面向持久知识库的可审计声明准入框架（认知—治理双平面解耦参考实现）
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Benchmark Packets](https://img.shields.io/badge/Benchmark-1%2C800%20Packets-orange.svg)](#dataset--benchmark-composition--数据集构成)
 [![Validation](https://img.shields.io/badge/Validation-4--Fold%20%2B%205--Fold%20CV-purple.svg)](#empirical-results--实验结果概览)
-[![Audit Trail](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Chained-teal.svg)](#architecture--整体架构)
+[![Audit Trail](https://img.shields.io/badge/Audit%20Ledger-SHA--256%20Chained-teal.svg)](#overview--研究背景与核心思路)
 
 > **English** | [简体中文说明](#简体中文说明)
 >
@@ -78,11 +78,11 @@ Sweeping the deferral penalty $d \in \{0.1, 0.5, 1.0, 2.0\}$ provides a smooth o
 
 ---
 
-### 4. Five-Fold Stratified CV & Component Ablations | 五折交叉验证与模块消融实验
+### 4. Multi-Metric SOTA Comparison & Component Ablations | 多指标 SOTA 对比与模块消融实验
 
-![Five-Fold CV and Component Ablations](figures/ablation_and_cv.png)
+![Multi-Metric SOTA Comparison and Component Ablations](figures/ablation_and_cv.png)
 
-Removing individual components confirms their complementary roles (`results/ablation_metrics.csv`):
+Removing individual components confirms their complementary roles (`results/ablation_metrics.csv`), while `results/lambda_sensitivity.csv` verifies $\lambda = 0.50$ optimality on the strict zero-false-rejection frontier and `results/module_efficiency.csv` profiles microsecond CPU latencies (`16.27–77.27 μs/packet`, `0.00` additional GPU hours):
 - **w/o Peer-Agreement Amplification**: Revision recall drops by `-21.78 pp` (`46.00% -> 24.22%`).
 - **w/o Provenance Gate**: FAR rises from `0.06%` to `2.94%` (`47` provenance violations; accept precision drops to `48.94%`).
 - **w/o Repairability Gate**: Produces `20` invalid revision referrals on Adaptive (`76` on Dawid–Skene).
@@ -170,9 +170,9 @@ python -m unittest discover -s tests -v
 ├── THIRD_PARTY_NOTICES.md            # Upstream benchmark citations and open licenses
 ├── data/                             # Structured benchmark inputs (1,800 packets, 7,200 votes)
 ├── vendor/deciv2/r12/                # Core DeCiv modules (contracts, Stage I consensus, Stage II router)
-├── results/                          # Pre-generated CSV & JSON outputs (including five_fold_cv & ablations)
-├── figures/                          # Workflow architecture & empirical charts (PNG & vector PDF)
-│   ├── figure1_workflow.png
+├── results/                          # Pre-generated CSV & JSON outputs (incl. 5-fold CV, ablations, lambda & latency)
+├── figures/                          # Workflow architecture & empirical charts (PNG, PDF & editable SVG)
+│   ├── figure1_workflow.png          # High-resolution workflow diagram (+ figure1_workflow.svg vector)
 │   ├── admission_tradeoff.png
 │   ├── routing_confusions.png
 │   ├── routing_cost_sensitivity.png

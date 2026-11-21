@@ -111,11 +111,11 @@ def main():
     fig.savefig(FIGS / "routing_confusions.png", dpi=300)
     plt.close(fig)
 
-    # Figure 4: Deferral cost sensitivity (6.30 x 2.65 in)
+    # Figure 4: Deferral cost sensitivity (6.30 x 2.65 in, sleek line weights)
     data = rows("cost_sensitivity.csv")
     fig, axes = plt.subplots(1, 2, figsize=(6.30, 2.65), layout="constrained")
     for ax in axes:
-        ax.axvline(0.5, color="#64748b", linestyle=":", linewidth=1.1, zorder=1)
+        ax.axvline(0.5, color="#64748b", linestyle=":", linewidth=0.9, zorder=1)
     for j, mode in enumerate(["fixed", "adaptive", "dawid_skene"]):
         rs = sorted([r for r in data if r["method"] == mode], key=lambda r: float(r["defer_cost"]))
         for ax, k in zip(axes, ["non_defer_fraction", "far"]):
@@ -126,8 +126,8 @@ def main():
                 color=colors[j],
                 marker=["o", "s", "^"][j],
                 linestyle=["-", "--", "-."][j],
-                linewidth=1.7,
-                markersize=4.6,
+                linewidth=1.35,
+                markersize=4.2,
                 zorder=3,
             )
             ax.set(
@@ -137,50 +137,36 @@ def main():
                 ylim=(0, 87 if k == "non_defer_fraction" else 0.9),
             )
             ax.set_xticks([0.1, 0.5, 1, 2])
-            ax.grid(alpha=0.24, color="#cbd5e1")
-    axes[0].text(0.55, 6, "d = 0.5 (default)", fontsize=7.0, color="#475569")
-    axes[1].text(0.55, 0.46, "d = 0.5 (default)", fontsize=7.0, color="#475569")
-    axes[0].legend(loc="upper left", frameon=False, fontsize=7.1)
-    axes[1].legend(loc="upper left", frameon=False, fontsize=7.1)
+            ax.grid(alpha=0.22, color="#cbd5e1")
+    axes[0].legend(loc="upper left", frameon=False, fontsize=7.0)
+    axes[1].legend(loc="upper left", frameon=False, fontsize=7.0)
     fig.savefig(FIGS / "routing_cost_sensitivity.pdf")
     fig.savefig(FIGS / "routing_cost_sensitivity.png", dpi=300)
     plt.close(fig)
 
-    # Figure 5: 5-Fold Stratified CV & Component Ablation (6.30 x 2.75 in)
-    cv5 = {(r["method"], r["router"]): r for r in rows("five_fold_cv.csv")}
+    # Figure 5: Multi-Metric SOTA Comparison & Component Ablation (6.30 x 2.75 in)
     ab = {r["variant_id"]: r for r in rows("ablation_metrics.csv")}
     fig, axes = plt.subplots(1, 2, figsize=(6.30, 2.75), layout="constrained")
     ax0 = axes[0]
-    m_specs = [
-        (("majority", "direct"), "Majority Direct", "#94a3b8"),
-        (("fixed", "risk"), "DeCiv Fixed", "#2b5c8f"),
-        (("adaptive", "risk"), "DeCiv Adaptive", "#d95f02"),
-        (("dawid_skene", "risk"), "DeCiv + Dawid\u2013Skene", "#1b8a5a"),
+    comp_specs = [
+        ("Selective (2023)", "#94a3b8", [100 * (1 - float(sota["selective_threshold"]["far"])), 100 * float(sota["selective_threshold"]["accept_precision"]), 100 * float(sota["selective_threshold"]["accuracy"]), 100 * float(sota["selective_threshold"]["recall_revise"])]),
+        ("Post-Hoc L2D", "#64748b", [100 * (1 - float(sota["posthoc_l2d"]["far"])), 100 * float(sota["posthoc_l2d"]["accept_precision"]), 100 * float(sota["posthoc_l2d"]["accuracy"]), 100 * float(sota["posthoc_l2d"]["recall_revise"])]),
+        ("DeCiv Adaptive", "#d95f02", [100 * (1 - float(metrics[("adaptive", "risk")]["far"])), 100 * float(metrics[("adaptive", "risk")]["accept_precision"]), 100 * float(metrics[("adaptive", "risk")]["accuracy"]), 100 * float(metrics[("adaptive", "risk")]["recall_revise"])]),
+        ("DeCiv + GLAD", "#7c3aed", [100 * (1 - float(sota["deciv_glad_risk"]["far"])), 100 * float(sota["deciv_glad_risk"]["accept_precision"]), 100 * float(sota["deciv_glad_risk"]["accuracy"]), 100 * float(sota["deciv_glad_risk"]["recall_revise"])]),
+        ("DeCiv + DS", "#1b8a5a", [100 * (1 - float(metrics[("dawid_skene", "risk")]["far"])), 100 * float(metrics[("dawid_skene", "risk")]["accept_precision"]), 100 * float(metrics[("dawid_skene", "risk")]["accuracy"]), 100 * float(metrics[("dawid_skene", "risk")]["recall_revise"])]),
     ]
     cat_labels = ["Safety\n(100\u2212FAR)", "Accept\nPrec.", "4-Action\nAcc.", "Revise\nRecall"]
     x_pos = np.arange(len(cat_labels))
-    bar_w = 0.19
-    for idx_m, (m_key, m_lbl, m_col) in enumerate(m_specs):
-        r5 = cv5[m_key]
-        means = [
-            100 * (1.0 - float(r5["far_mean"])),
-            100 * float(r5["accept_precision_mean"]),
-            100 * float(r5["accuracy_mean"]),
-            100 * float(r5["recall_revise_mean"]),
-        ]
-        stds = [
-            100 * float(r5["far_std"]),
-            100 * float(r5["accept_precision_std"]),
-            100 * float(r5["accuracy_std"]),
-            100 * float(r5["recall_revise_std"]),
-        ]
-        ax0.bar(x_pos + (idx_m - 1.5) * bar_w, means, width=bar_w, yerr=stds, capsize=2.0, color=m_col, edgecolor="white", linewidth=0.5, label=m_lbl, error_kw={"elinewidth": 0.8, "ecolor": "#334155"}, zorder=3)
+    bar_w = 0.155
+    for idx_m, (m_lbl, m_col, vals) in enumerate(comp_specs):
+        ax0.bar(x_pos + (idx_m - 2.0) * bar_w, vals, width=bar_w, color=m_col, edgecolor="white", linewidth=0.45, label=m_lbl, zorder=3)
     ax0.set_xticks(x_pos, cat_labels)
-    ax0.set_ylim(0, 128)
-    ax0.set_ylabel("Score across 5 folds (%)")
-    ax0.set_title("(a) 5-Fold stratified CV (mean \u00b1 SD)")
-    ax0.grid(axis="y", alpha=0.24, color="#cbd5e1")
-    ax0.legend(loc="upper center", ncol=2, frameon=False, fontsize=6.4, columnspacing=0.8, handletextpad=0.35)
+    ax0.set_ylim(0, 144)
+    ax0.set_yticks([0, 20, 40, 60, 80, 100])
+    ax0.set_ylabel("Metric score (%)")
+    ax0.set_title("(a) SOTA baselines vs. DeCiv")
+    ax0.grid(axis="y", alpha=0.22, color="#cbd5e1")
+    ax0.legend(loc="upper left", bbox_to_anchor=(0.01, 1.01), ncol=2, frameon=False, fontsize=5.9, columnspacing=0.6, handletextpad=0.3, labelspacing=0.22)
 
     ax1 = axes[1]
     ab_keys = [
@@ -198,14 +184,14 @@ def main():
     ax1.barh(y_pos + bh / 2, prec_vals, height=bh, color="#1b8a5a", label="Accept Prec. (%)", zorder=3)
     ax1.barh(y_pos - bh / 2, rev_vals, height=bh, color="#d95f02", label="Revise Recall (%)", zorder=3)
     for y_i, p_val, r_val, f_val in zip(y_pos, prec_vals, rev_vals, far_vals):
-        ax1.text(max(p_val, r_val) + 1.8, y_i, f"FAR {f_val:.2f}%", va="center", ha="left", fontsize=6.5, color="#1e293b")
+        ax1.text(max(p_val, r_val) + 1.8, y_i, f"FAR {f_val:.2f}%", va="center", ha="left", fontsize=6.4, color="#1e293b")
     ax1.set_yticks(y_pos, [lbl for _, lbl in ab_keys])
-    ax1.set_xlim(0, 138)
+    ax1.set_xlim(0, 140)
     ax1.set_ylim(-0.6, 5.45)
-    ax1.set_xlabel("Metric score (%) [annotated with FAR]")
-    ax1.set_title("(b) Component ablation impact")
-    ax1.grid(axis="x", alpha=0.24, color="#cbd5e1")
-    ax1.legend(loc="upper right", ncol=2, frameon=False, fontsize=6.4, columnspacing=0.7, handletextpad=0.35)
+    ax1.set_xlabel("Metric score (%)")
+    ax1.set_title("(b) Ablation impact (Adaptive)")
+    ax1.grid(axis="x", alpha=0.22, color="#cbd5e1")
+    ax1.legend(loc="upper right", ncol=2, frameon=False, fontsize=6.2, columnspacing=0.65, handletextpad=0.35)
 
     fig.savefig(FIGS / "ablation_and_cv.pdf")
     fig.savefig(FIGS / "ablation_and_cv.png", dpi=300)
