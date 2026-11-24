@@ -82,6 +82,21 @@ class TestDeCivReproducibility(unittest.TestCase):
         for r in eff_rows:
             self.assertEqual(float(r["gpu_hours"]), 0.0)
 
+    def test_institutional_cost_and_gated_sota_ablation(self):
+        with (RESULTS / "main_metrics.csv").open(encoding="utf-8") as f:
+            metrics = {(r["method"], r["router"]): r for r in csv.DictReader(f)}
+        self.assertLess(float(metrics[("dawid_skene", "risk")]["mean_institutional_cost"]), 0.30)
+        self.assertGreater(float(metrics[("majority", "direct")]["mean_institutional_cost"]), 1.90)
+
+        with (RESULTS / "gated_sota_ablation.csv").open(encoding="utf-8") as f:
+            gated = {r["variant_id"]: r for r in csv.DictReader(f)}
+        self.assertEqual(len(gated), 7)
+        for r in gated.values():
+            self.assertEqual(int(r["eligibility_violations"]), 0)
+        self.assertGreater(float(gated["selective_threshold_gated"]["far"]), 0.008)
+        self.assertGreater(float(gated["conformal_risk_gated"]["far"]), 0.03)
+        self.assertAlmostEqual(float(gated["posthoc_l2d_gated"]["far"]), 3 / 1630, places=6)
+
 
 if __name__ == "__main__":
     unittest.main()

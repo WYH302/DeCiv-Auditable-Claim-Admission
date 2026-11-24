@@ -182,8 +182,25 @@ def result_rows(index, targets, contexts, inputs, predictions):
                 posterior = predictions[mode][key]
                 action, risks, reasons, reason, admissible = route(posterior, contexts[key], router)
                 reference = reference_action(targets[key], contexts[key])
-                output.append({"method": mode, "router": router, "audit_join_id": key, "parent_id": row["parent_id"], "held_out_source": row["source_dataset"], "reference_action": reference, "semantic_target": targets[key], "predicted_action": action, "eligible": int(admissible), "correct": int(action == reference), "false_accept": int(action == "accept" and reference != "accept"), "p_supported": posterior[0], "p_contradicted": posterior[1], "p_partial": posterior[2], "p_insufficient": posterior[3], "risk_accept": risks[0], "risk_reject": risks[1], "risk_revise": risks[2], "risk_defer": risks[3], "reason": reason, "eligibility_reasons": "|".join(reasons), "runtime_input_hash": digest({"votes": [v.payload() for v in inputs[key].semantic_votes], "context": contexts[key]})})
+                inst_cost = realized_institutional_cost(action, reference, targets[key], admissible)
+                output.append({"method": mode, "router": router, "audit_join_id": key, "parent_id": row["parent_id"], "held_out_source": row["source_dataset"], "reference_action": reference, "semantic_target": targets[key], "predicted_action": action, "eligible": int(admissible), "correct": int(action == reference), "false_accept": int(action == "accept" and reference != "accept"), "institutional_cost": inst_cost, "p_supported": posterior[0], "p_contradicted": posterior[1], "p_partial": posterior[2], "p_insufficient": posterior[3], "risk_accept": risks[0], "risk_reject": risks[1], "risk_revise": risks[2], "risk_defer": risks[3], "reason": reason, "eligibility_reasons": "|".join(reasons), "runtime_input_hash": digest({"votes": [v.payload() for v in inputs[key].semantic_votes], "context": contexts[key]})})
     return output
+
+
+STATUS_IDX = {s: idx for idx, s in enumerate(STATUSES)}
+ACTION_IDX = {a: idx for idx, a in enumerate(ACTIONS)}
+
+
+def realized_institutional_cost(predicted_action, reference, semantic_target, eligible_flag, defer_cost=0.5):
+    """Exact realized institutional risk under BASE_COST, accounting for provenance contamination."""
+    costs = BASE_COST.copy()
+    costs[3, :3] = defer_cost
+    c_sem = float(costs[ACTION_IDX[predicted_action], STATUS_IDX[semantic_target]])
+    if predicted_action == "accept" and reference != "accept":
+        return max(c_sem, 13.5 if semantic_target == "partially_supported" else 18.0)
+    if predicted_action == "revise" and not eligible_flag:
+        return max(c_sem, 3.0)
+    return c_sem
 
 
 def summarize(rows):
@@ -196,6 +213,8 @@ def summarize(rows):
               "accept_precision": good_accept/accepted if accepted else None,
               "acceptance_rate": accepted/n, "non_defer_fraction": sum(r["predicted_action"] != "defer" for r in rows)/n,
               "eligibility_violations": sum(not r["eligible"] for r in rows)}
+    if rows and "institutional_cost" in rows[0]:
+        output["mean_institutional_cost"] = sum(r["institutional_cost"] for r in rows) / n
     for action in ACTIONS:
         count = sum(r["reference_action"] == action for r in rows)
         output[f"recall_{action}"] = sum(r["predicted_action"] == r["reference_action"] == action for r in rows)/count if count else None
@@ -339,7 +358,8 @@ def save_ablations(index, targets, contexts, predictions):
             action = next(a for a in TIE_ORDER if a in allowed and risks[ACTIONS.index(a)] <= best + 1e-12)
             true_allowed, _ = eligible(contexts[key])
             ref = reference_action(targets[key], contexts[key])
-            rows_ab.append({"predicted_action": action, "reference_action": ref, "correct": int(action == ref), "false_accept": int(action == "accept" and ref != "accept"), "eligible": int(action in true_allowed)})
+            adm_true = int(action in true_allowed)
+            rows_ab.append({"predicted_action": action, "reference_action": ref, "correct": int(action == ref), "false_accept": int(action == "accept" and ref != "accept"), "eligible": adm_true, "institutional_cost": realized_institutional_cost(action, ref, targets[key], bool(adm_true))})
         out_rows.append({"variant_id": variant_id, "label": label, "base_estimator": mode, **summarize(rows_ab)})
     write_csv("ablation_metrics.csv", out_rows)
 
@@ -538,7 +558,7 @@ def save_sota_baselines(index, targets, contexts, inputs, predictions):
             else:
                 act, adm = _route_sota(post, contexts[key], r_name, conformal_q=conformal_q_4f[row["source_dataset"]])
             ref = reference_action(targets[key], contexts[key])
-            rows_4f.append({"predicted_action": act, "reference_action": ref, "correct": int(act == ref), "false_accept": int(act == "accept" and ref != "accept"), "eligible": int(adm)})
+            rows_4f.append({"predicted_action": act, "reference_action": ref, "correct": int(act == ref), "false_accept": int(act == "accept" and ref != "accept"), "eligible": int(adm), "institutional_cost": realized_institutional_cost(act, ref, targets[key], bool(adm))})
         s4 = summarize(rows_4f)
         accs_5f = [float(m["accuracy"]) for m in cv5_folds[sid]]
         fars_5f = [float(m["far"]) for m in cv5_folds[sid]]
@@ -552,6 +572,33 @@ def save_sota_baselines(index, targets, contexts, inputs, predictions):
             "cv5_far_std": float(np.std(fars_5f, ddof=1)),
         })
     write_csv("sota_baselines.csv", out_rows)
+
+    # Also save Provenance-Gated SOTA control check (retrofitting DeCiv's hard gate onto SOTA routers)
+    gated_specs = [
+        ("majority_direct_gated", "Majority / direct + Gate", "majority", "direct"),
+        ("ds_direct_gated", "Dawid-Skene / direct + Gate", "dawid_skene", "direct"),
+        ("selective_threshold_gated", "Selective-Threshold (2023) + Gate", "dawid_skene", "selective_threshold"),
+        ("margin_adaptive_gated", "Margin-Abstention (Adaptive, 2024) + Gate", "adaptive", "margin_rejector"),
+        ("margin_ds_gated", "Margin-Abstention (DS, 2024) + Gate", "dawid_skene", "margin_rejector"),
+        ("conformal_risk_gated", "Conformal-Risk (2024) + Gate", "dawid_skene", "conformal_risk"),
+        ("posthoc_l2d_gated", "Post-Hoc Cost L2D (2022) + Gate (=DeCiv+DS)", "dawid_skene", "posthoc_l2d"),
+    ]
+    gated_rows = []
+    for gid, glbl, est_name, r_name in gated_specs:
+        g_eval = []
+        for row in index:
+            key = row["audit_join_id"]
+            post = predictions[est_name][key]
+            if r_name == "direct":
+                raw_act = route(post, contexts[key], "direct")[0]
+            else:
+                raw_act = _route_sota(post, contexts[key], r_name, conformal_q=conformal_q_4f[row["source_dataset"]])[0]
+            allowed, _ = eligible(contexts[key])
+            act = raw_act if raw_act in allowed else "defer"
+            ref = reference_action(targets[key], contexts[key])
+            g_eval.append({"predicted_action": act, "reference_action": ref, "correct": int(act == ref), "false_accept": int(act == "accept" and ref != "accept"), "eligible": 1, "institutional_cost": realized_institutional_cost(act, ref, targets[key], True)})
+        gated_rows.append({"variant_id": gid, "label": glbl, **summarize(g_eval)})
+    write_csv("gated_sota_ablation.csv", gated_rows)
 
 
 def save_lambda_and_efficiency(index, targets, contexts, inputs):

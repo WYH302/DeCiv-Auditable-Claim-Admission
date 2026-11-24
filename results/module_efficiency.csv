@@ -1,10 +1,10 @@
 module,complexity,online_us,offline_fit_s,gpu_hours
-Stage I: Fixed consensus,O(K|S|),4.72,0.0,0.0
-Stage I: Adaptive concordance (lambda=0.5),O(K^2),9.01,0.0,0.0
-Stage I: Dawid-Skene EM,O(K|S|),86.7,2.894,0.0
-Stage IIa: Provenance & repairability gate,O(1),0.58,0.0,0.0
-Stage IIb: Asymmetric expected-risk router,O(|A||S|),7.39,0.0,0.0
-Accountability Plane: SHA-256 hash chain,O(|x|),6.46,0.0,0.0
-End-to-End: DeCiv Fixed / risk,O(K|S|+|x|),19.14,0.0,0.0
-End-to-End: DeCiv Adaptive / risk,O(K^2+|x|),23.43,0.0,0.0
-End-to-End: DeCiv + Dawid-Skene / risk,O(K|S|+|x|),101.12,2.894,0.0
+Stage I: Fixed consensus,O(K|S|),3.25,0.0,0.0
+Stage I: Adaptive concordance (lambda=0.5),O(K^2),7.28,0.0,0.0
+Stage I: Dawid-Skene EM,O(K|S|),91.01,1.895,0.0
+Stage IIa: Provenance & repairability gate,O(1),0.62,0.0,0.0
+Stage IIb: Asymmetric expected-risk router,O(|A||S|),7.12,0.0,0.0
+Accountability Plane: SHA-256 hash chain,O(|x|),4.95,0.0,0.0
+End-to-End: DeCiv Fixed / risk,O(K|S|+|x|),15.94,0.0,0.0
+End-to-End: DeCiv Adaptive / risk,O(K^2+|x|),19.97,0.0,0.0
+End-to-End: DeCiv + Dawid-Skene / risk,O(K|S|+|x|),103.7,1.895,0.0
