@@ -85,9 +85,9 @@ Sweeping the deferral penalty $d \in \{0.1, 0.5, 1.0, 2.0\}$ provides a smooth o
 
 Removing individual components confirms their non-redundant roles (`results/ablation_metrics.csv`), while `results/lambda_sensitivity.csv` maps the concordance $\lambda$ frontier and `results/module_efficiency.csv` profiles microsecond CPU latencies (`15.94–103.70 μs/packet`, `0.00` additional GPU hours):
 - **w/o Peer-Agreement Amplification**: Revision recall drops by `-21.78 pp` (`46.00% -> 24.22%`).
-- **w/o Provenance Gate**: FAR jumps `49×` (`0.06% -> 2.94%`, `47` violations, mean cost `0.822`).
+- **w/o Provenance Gate**: FAR jumps `49×` (`0.06% -> 2.94%`, `47` violations, mean cost `0.797`).
 - **w/o Repairability Gate**: Triggers `20` invalid revision referrals on Adaptive (`76` on Dawid–Skene).
-- **w/o Asymmetric Cost (`0–1` Symmetric Loss)**: FAR jumps `64×` on Adaptive (`3.87%`, mean cost `0.961`) and `24×` on Dawid–Skene (`4.42%`, mean cost `1.106`).
+- **w/o Asymmetric Cost (`0–1` Symmetric Loss)**: FAR jumps `64×` on Adaptive (`3.87%`, mean cost `0.914`) and `24×` on Dawid–Skene (`4.42%`, mean cost `1.636`).
 - **w/o Quarantine Deferral**: Forcing immediate commitment increases FAR sixfold (`0.37%` on Adaptive, `1.04%` on Dawid–Skene).
 
 ---
