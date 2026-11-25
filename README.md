@@ -11,7 +11,9 @@
 
 ---
 
-## 1. Architecture Overview / 核心架构
+## 1. Core Breakthrough & Architecture Overview / 核心洞见与架构
+
+![DeCiv Teaser Pareto](figures/figure1_teaser_pareto.png)
 
 ![DeCiv Workflow](figures/figure1_workflow.png)
 
@@ -102,10 +104,11 @@ python evaluate_real_verifiers.py
 python run_trans_ablations.py
 python run_trans_rigor_suite.py
 
-# 4. Regenerate all publication figures (300 DPI PNG + vector PDF)
+# 4. Regenerate all publication figures (300 DPI PNG + vector PDF, Okabe-Ito palette)
 python scripts/plot_figures.py
-python scripts/plot_upgraded_figures.py
+python scripts/plot_figure1_teaser.py
 python scripts/plot_figure1_architecture.py
+python scripts/plot_upgraded_figures.py
 python scripts/plot_discovery_and_sensitivity.py
 
 # 5. Run all 18 automated verification tests
