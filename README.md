@@ -51,10 +51,10 @@ Injecting $m \in \{1, 3, 5\}$ surface-wrapped adversarial copies per contradicte
 
 Scored across 1,200 real full-text claim–evidence packets (`FEVER`, `SciFact`, `HotpotQA`, `TruthfulQA`; 300 parent clusters) using five distinct architectures spanning three families:
 - **Empirical $5 \times 5$ Error Correlation Matrix**: Intra-family **OpenLLM–OpenLLM** (`Llama-3.1-8B` vs. `Qwen3.5-9B`) correlates at **$\hat{\rho} = 0.481$** and **NLI–NLI** (`DeBERTa-v3-Large` vs. `BART-Large-MNLI`) at **$\hat{\rho} = 0.393$**, whereas cross-family **NLI–OpenLLM** ($\hat{\rho} = 0.169$) and **OpenLLM–Frontier** ($\hat{\rho} = 0.206$) drop correlation **2.3×–2.8×**.
-- **Strict Real-Data Component Ablation (`run_trans_rigor_suite.py`)**:
-  - **Pure Log-Linear CAF (zero trees)**: **`89.83%`** 4-fold LODO (`91.17%` 5-fold), `0.0181` ECE, `0.394` NLL — already surpassing `Solo Frontier GPT-6.1-Sol + Gate` (`88.92%`, `0.598` NLL) and `GBDT Stacking + Gate` (`88.75%`, `0.422` NLL) without any tree learner.
-  - **Cross-Family Consensus Products**: Removing $\bar{q}_{i,a} \odot \bar{q}_{i,b}$ degrades ECE by **+38%** (`0.0217 -> 0.0300`) and raises FAR (`2.30% -> 2.50%`).
-  - **Mass-Preserving Admissibility Projection**: Removing Eq. (10) projection collapses 4-fold accuracy by **-17.92 pp** (`90.00% -> 72.08%`) and more than doubles institutional cost (`0.711 -> 1.462`).
+- **Strict Real-Data Component Ablation (`run_trans_rigor_suite.py`, bit-for-bit aligned with Table 4)**:
+  - **Pure Log-Linear CAF (zero trees)**: **`89.58%`** 4-fold LODO / **`91.67%`** 5-fold, `0.0181` ECE, `0.394` NLL — already surpassing `Solo Frontier GPT-6.1-Sol + Gate` (`88.92%`, `0.598` NLL) and `GBDT Stacking + Gate` (`88.75%`, `91.25%` 5-fold, `0.422` NLL) without any tree learner.
+  - **Cross-Family Consensus Products**: Removing $\bar{q}_{i,a} \odot \bar{q}_{i,b}$ degrades ECE by **+38%** (`0.0217 -> 0.0300`) and raises FAR (`1.90% -> 2.00%`).
+  - **Mass-Preserving Admissibility Projection**: Removing Eq. (10) projection collapses 4-fold accuracy by **-17.84 pp** (`89.92% -> 72.08%`) and more than doubles institutional cost (`0.638 -> 1.397`).
 - **10,000-Resample Parent-Cluster Paired Bootstrap ($B = 10{,}000$, 300 clusters)**: `DeCiv-CAF / proj. MAP` beats `Solo GPT-6.1 + Gate` by $\Delta\mathrm{NLL} = -0.230$ ($p < 0.0001$); `DeCiv-CAF / risk (d=0.5)` beats `Solo GPT-6.1 + Gate` by $\Delta\mathrm{Cost} = -0.223$, $\Delta\mathrm{FAR} = -1.10\text{ pp}$ (both $p < 0.0001$) and beats `GBDT Stacking + Gate` by $\Delta\mathrm{Cost} = -0.487$, $\Delta\mathrm{FAR} = -2.30\text{ pp}$ (both $p < 0.0001$).
 
 | Method (4-Fold LODO CV & 5-Fold CV on `DeCiv-Real-1200`) | Acc | FAR (↓) | Prec | EV | Cost (↓) | ECE (↓) | NLL (↓) | 5F Acc / FAR |

@@ -49,6 +49,7 @@ RESULTS = ROOT / "results"
 
 
 def make_5fold_parent_splits(rows: list[dict]) -> list[tuple[np.ndarray, np.ndarray]]:
+    rng = np.random.default_rng(20261025)
     by_dom: dict[str, list[str]] = {}
     for r in rows:
         lst = by_dom.setdefault(r["source_dataset"], [])
@@ -56,8 +57,10 @@ def make_5fold_parent_splits(rows: list[dict]) -> list[tuple[np.ndarray, np.ndar
             lst.append(r["parent_id"])
     pid_to_fold: dict[str, int] = {}
     for dom in sorted(by_dom):
-        for idx, pid in enumerate(sorted(by_dom[dom])):
-            pid_to_fold[pid] = idx % 5
+        plist = sorted(by_dom[dom])
+        perm = rng.permutation(len(plist))
+        for pos, pidx in enumerate(perm):
+            pid_to_fold[plist[pidx]] = pos % 5
     folds = []
     for f in range(5):
         tr = np.array([i for i, r in enumerate(rows) if pid_to_fold[r["parent_id"]] != f], dtype=np.int64)
@@ -198,7 +201,7 @@ class AblationCAF:
         return apply_temperature(raw, self.temperature_) if self.use_oof_temp else raw
 
 
-def route_naive_argmax_no_proj(posterior: np.ndarray, context: dict[str, str], tau_accept: float = 0.0) -> str:
+def route_naive_argmax_no_proj(posterior: np.ndarray, context: dict[str, str], tau_accept: float = 0.50) -> str:
     """Naive argmax over admissible actions WITHOUT mass-preserving projection onto defer."""
     p = np.asarray(posterior, dtype=np.float64)
     allowed, _ = eligible_actions(context)
@@ -210,18 +213,8 @@ def route_naive_argmax_no_proj(posterior: np.ndarray, context: dict[str, str], t
 
 
 def route_projected_map(posterior: np.ndarray, context: dict[str, str]) -> str:
-    """Mass-preserving admissibility-projected MAP router."""
-    p = np.asarray(posterior, dtype=np.float64)
-    allowed, _ = eligible_actions(context)
-    q = p.copy()
-    if "accept" not in allowed:
-        q[3] += q[0]
-        q[0] = 0.0
-    if "revise" not in allowed:
-        q[3] += q[2]
-        q[2] = 0.0
-    best_q = max(float(q[ACTION_IDX[a]]) for a in allowed)
-    return next(a for a in TIE_ORDER if a in allowed and float(q[ACTION_IDX[a]]) >= best_q - 1e-12)
+    """Mass-preserving admissibility-projected MAP router (identical to Table 3 deciv_caf_gated_map)."""
+    return route_projected_pg_crc(posterior, context, tau_accept=0.50)[0]
 
 
 def route_custom_cost(posterior: np.ndarray, context: dict[str, str], defer_cost: float, c_acc: float) -> str:
@@ -314,7 +307,7 @@ def run_ablation(rows, soft, y_true, contexts, refs, pids, srcs, folds5) -> tupl
 
     def s1_sup_soft_ds(use_temp: bool):
         def fn(tr, te, grp):
-            ds = VectorizedDawidSkene(smoothing=1e-2).fit_soft(soft[tr], y_true[tr])
+            ds = VectorizedDawidSkene(smoothing=1.0).fit_soft(soft[tr], y_true[tr])
             if use_temp:
                 ds.calibrate_temperature(ds.predict_proba_soft(soft[tr], apply_temp=False), y_true[tr])
             return ds.predict_proba_soft(soft[tr], apply_temp=use_temp), ds.predict_proba_soft(soft[te], apply_temp=use_temp)
@@ -378,14 +371,19 @@ def run_significance_tests(rows, soft, y_true, contexts, refs, pids, srcs, cache
 
     # Reconstruct baseline LODO OOF probabilities identically to evaluate_real_verifiers.py
     p_gpt = soft[:, 4, :]
-    p_mean = np.mean(soft, axis=1)
+    p_mean_raw = np.mean(soft, axis=1)
+    p_mean = np.zeros((n, 4), dtype=np.float64)
     p_gbdt = np.zeros((n, 4), dtype=np.float64)
     for dom in domains:
         tr = np.array([i for i in range(n) if srcs[i] != dom], dtype=np.int64)
         te = np.array([i for i in range(n) if srcs[i] == dom], dtype=np.int64)
+        t_pool = fit_temperature(p_mean_raw[tr], y_true[tr])
+        p_mean[te] = apply_temperature(p_mean_raw[te], t_pool)
         X_tr = soft[tr].reshape(len(tr), -1)
         X_te = soft[te].reshape(len(te), -1)
-        gb = HistGradientBoostingClassifier(max_depth=4, max_iter=100, learning_rate=0.05, random_state=42).fit(X_tr, y_true[tr])
+        gb = HistGradientBoostingClassifier(
+            max_depth=3, max_iter=80, learning_rate=0.05, l2_regularization=5.0, random_state=42
+        ).fit(X_tr, y_true[tr])
         p_gbdt[te] = gb.predict_proba(X_te)
 
     methods = {
