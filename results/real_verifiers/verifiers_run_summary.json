@@ -1,0 +1,50 @@
+[
+  {
+    "verifier_id": "deberta_v3_large",
+    "model_name": "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli",
+    "accuracy_4class": 0.7692,
+    "rec_supported": 0.865,
+    "rec_contradicted": 0.6933,
+    "rec_partial": 0.8033,
+    "rec_insufficient": 0.64,
+    "inference_seconds": 10.17,
+    "throughput_pairs_per_s": 88.47,
+    "peak_vram_gb": 2.358
+  },
+  {
+    "verifier_id": "bart_large_mnli",
+    "model_name": "facebook/bart-large-mnli",
+    "accuracy_4class": 0.5875,
+    "rec_supported": 0.575,
+    "rec_contradicted": 0.6867,
+    "rec_partial": 0.5433,
+    "rec_insufficient": 0.53,
+    "inference_seconds": 30.07,
+    "throughput_pairs_per_s": 29.93,
+    "peak_vram_gb": 2.299
+  },
+  {
+    "verifier_id": "llama31_8b",
+    "model_name": "Meta-Llama-3.1-8B-Instruct",
+    "accuracy_4class": 0.5867,
+    "rec_supported": 0.915,
+    "rec_contradicted": 0.4433,
+    "rec_partial": 0.23,
+    "rec_insufficient": 0.68,
+    "inference_seconds": 156.37,
+    "throughput_pairs_per_s": 5.76,
+    "peak_vram_gb": 9.206
+  },
+  {
+    "verifier_id": "qwen35_9b",
+    "model_name": "Qwen/Qwen3.5-9B",
+    "accuracy_4class": 0.635,
+    "rec_supported": 0.915,
+    "rec_contradicted": 0.8033,
+    "rec_partial": 0.01,
+    "rec_insufficient": 0.76,
+    "inference_seconds": 324.11,
+    "throughput_pairs_per_s": 2.78,
+    "peak_vram_gb": 6.684
+  }
+]

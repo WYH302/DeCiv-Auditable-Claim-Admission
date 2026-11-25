@@ -1,0 +1,45 @@
+{
+  "scalar_ds_fit_ms": 4440.62,
+  "vec_ds_fit_ms": 181.59,
+  "fit_speedup_x": 24.5,
+  "scalar_ds_inf_us": 126.348,
+  "vec_ds_inf_us": 0.337,
+  "inf_speedup_x": 374.5,
+  "linear_chain_us_per_pkt": 0.947,
+  "merkle_batch64_us_per_pkt": 4.642,
+  "scaling": [
+    {
+      "log_records": 1800,
+      "tree_build_ms": 7.86,
+      "inclusion_proof_hashes": 11,
+      "inclusion_proof_bytes": 352,
+      "inclusion_verify_us": 49.99,
+      "consistency_proof_hashes": 10,
+      "consistency_verify_us": 41.94,
+      "linear_chain_verify_hashes": 1800,
+      "proof_compression_ratio": 163.6
+    },
+    {
+      "log_records": 10000,
+      "tree_build_ms": 39.18,
+      "inclusion_proof_hashes": 14,
+      "inclusion_proof_bytes": 448,
+      "inclusion_verify_us": 58.13,
+      "consistency_proof_hashes": 12,
+      "consistency_verify_us": 57.75,
+      "linear_chain_verify_hashes": 10000,
+      "proof_compression_ratio": 714.3
+    },
+    {
+      "log_records": 50000,
+      "tree_build_ms": 176.23,
+      "inclusion_proof_hashes": 16,
+      "inclusion_proof_bytes": 512,
+      "inclusion_verify_us": 65.23,
+      "consistency_proof_hashes": 14,
+      "consistency_verify_us": 68.44,
+      "linear_chain_verify_hashes": 50000,
+      "proof_compression_ratio": 3125.0
+    }
+  ]
+}

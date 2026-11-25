@@ -1,0 +1,12 @@
+regime_id,label,admitted_store_size,store_contamination_rate,poison_top3_retrieval_rate,downstream_poisoning_asr,downstream_qa_accuracy_all150,downstream_qa_accuracy_sup100,downstream_token_f1,safe_abstention_rate
+oracle_clean,Oracle Clean Store (Upper Bound),200,0.0,0.0,0.0,0.5867,0.88,0.5184,0.4
+no_filter,No Admission Filter (Unfiltered),1200,0.8333,0.9067,0.14,0.68,0.75,0.6576,0.16
+majority_direct,Majority Vote / direct,400,0.565,0.1467,0.0333,0.6533,0.88,0.5895,0.3
+conformal_risk,Conformal-Risk (ICLR 2024),358,0.5335,0.1133,0.0333,0.6,0.88,0.5442,0.3533
+selective_threshold,Selective-Threshold (2023),358,0.5307,0.0933,0.0267,0.5933,0.87,0.5375,0.3667
+posthoc_l2d,Post-Hoc Cost L2D (2022),82,0.5,0.0,0.0,0.0,0.0,0.0,1.0
+deciv_hard_ds_raw,"DeCiv + Hard-DS (raw, uncalibrated)",212,0.1509,0.1333,0.04,0.5933,0.82,0.51,0.3533
+deciv_hard_ds_pg_crc_010,DeCiv + Hard-DS + PG-CRC (alpha=0.01),112,0.0268,0.0133,0.0067,0.28,0.42,0.2152,0.7
+deciv_soft_ds_sup_temp,DeCiv + Sup-Soft-DS + TempScale,154,0.0455,0.04,0.0067,0.4933,0.73,0.4264,0.4867
+deciv_sup_pg_crc_005,DeCiv + Sup-Soft-DS + PG-CRC (alpha=0.005),92,0.0109,0.0067,0.0,0.26,0.39,0.1946,0.7267
+deciv_plus_revise,DeCiv + Sup-Soft-DS + Auto-Revise Loop,256,0.0469,0.04,0.0067,0.5133,0.76,0.4475,0.4467

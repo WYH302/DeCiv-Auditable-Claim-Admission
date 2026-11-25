@@ -1,0 +1,17 @@
+verifier_i,label_i,verifier_j,label_j,error_pearson_rho,prediction_agreement,error_jaccard,same_wrong_class_given_both_wrong
+deberta_v3_large,DeBERTa-v3-Large,deberta_v3_large,DeBERTa-v3-Large,1.0,1.0,1.0,1.0
+deberta_v3_large,DeBERTa-v3-Large,bart_large_mnli,BART-Large-MNLI,0.3926,0.6617,0.3786,0.7264
+deberta_v3_large,DeBERTa-v3-Large,llama31_8b,Llama-3.1-8B-Instruct,0.1828,0.575,0.261,0.6438
+deberta_v3_large,DeBERTa-v3-Large,qwen35_9b,Qwen3.5-9B,0.1968,0.6208,0.2633,0.745
+bart_large_mnli,BART-Large-MNLI,deberta_v3_large,DeBERTa-v3-Large,0.3926,0.6617,0.3786,0.7264
+bart_large_mnli,BART-Large-MNLI,bart_large_mnli,BART-Large-MNLI,1.0,1.0,1.0,1.0
+bart_large_mnli,BART-Large-MNLI,llama31_8b,Llama-3.1-8B-Instruct,0.0942,0.4542,0.3057,0.4483
+bart_large_mnli,BART-Large-MNLI,qwen35_9b,Qwen3.5-9B,0.2016,0.5492,0.3424,0.6471
+llama31_8b,Llama-3.1-8B-Instruct,deberta_v3_large,DeBERTa-v3-Large,0.1828,0.575,0.261,0.6438
+llama31_8b,Llama-3.1-8B-Instruct,bart_large_mnli,BART-Large-MNLI,0.0942,0.4542,0.3057,0.4483
+llama31_8b,Llama-3.1-8B-Instruct,llama31_8b,Llama-3.1-8B-Instruct,1.0,1.0,1.0,1.0
+llama31_8b,Llama-3.1-8B-Instruct,qwen35_9b,Qwen3.5-9B,0.4814,0.6308,0.5162,0.544
+qwen35_9b,Qwen3.5-9B,deberta_v3_large,DeBERTa-v3-Large,0.1968,0.6208,0.2633,0.745
+qwen35_9b,Qwen3.5-9B,bart_large_mnli,BART-Large-MNLI,0.2016,0.5492,0.3424,0.6471
+qwen35_9b,Qwen3.5-9B,llama31_8b,Llama-3.1-8B-Instruct,0.4814,0.6308,0.5162,0.544
+qwen35_9b,Qwen3.5-9B,qwen35_9b,Qwen3.5-9B,1.0,1.0,1.0,1.0

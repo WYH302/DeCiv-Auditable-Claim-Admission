@@ -1,0 +1,21 @@
+{
+  "n_routed_revise": 124,
+  "n_true_revise_targets": 124,
+  "revise_queue_precision": 1.0,
+  "mean_token_f1_before": 0.6473,
+  "mean_token_f1_after": 0.6639,
+  "mean_nli_evidence_entailment_after": 0.8561,
+  "n_safely_readmitted": 102,
+  "safe_readmission_rate": 0.8226,
+  "readmitted_truth_precision": 0.5294,
+  "post_repair_false_readmission_count": 48,
+  "overall_truth_recovery_rate_on_true_revise": 0.4355,
+  "merkle_lineage_root_hex": "9041e74795a6c98ec711a9af4a7f1e83cebf20e38cf6bbc3093fc15d46a05b6c",
+  "merkle_proofs_verified": "124/124",
+  "remediation_gpu_seconds": 201.96,
+  "reverification_gpu_seconds": 87.61,
+  "readmitted_evidence_entailment_rate": 0.951,
+  "readmitted_mean_nli_entailment": 0.9673,
+  "deferred_mean_nli_entailment": 0.3408,
+  "auto_revise_store_evidence_grounded_contam_rate": 0.0469
+}
