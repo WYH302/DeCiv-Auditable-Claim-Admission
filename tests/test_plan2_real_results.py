@@ -58,6 +58,27 @@ class TestPlan2RealGPUExperiments(unittest.TestCase):
             float(rag["deciv_soft_ds_sup_temp"]["downstream_poisoning_asr"]),
         )
 
+    def test_trans_diversity_ablation_and_pgcrc_alpha_sweep(self):
+        with (RESULTS / "real_verifier_diversity_ablation.csv").open(encoding="utf-8") as f:
+            div = {r["subset_id"]: r for r in csv.DictReader(f)}
+        # LLM-only collapses on revise recall; full 4-model cross-family lifts accuracy > +15 pp
+        self.assertEqual(float(div["llm_only"]["recall_revise"]), 0.0)
+        self.assertGreater(float(div["full_4_cross"]["recall_revise"]), 0.55)
+        self.assertGreater(
+            float(div["full_4_cross"]["accuracy"]) - float(div["llm_only"]["accuracy"]),
+            0.15,
+        )
+
+        with (RESULTS / "real_pgcrc_alpha_sweep.csv").open(encoding="utf-8") as f:
+            sweep = list(csv.DictReader(f))
+        self.assertEqual(len(sweep), 12)
+        for row in sweep:
+            # Strict Theorem 1 finite-sample compliance across all 12 alpha sweep points
+            self.assertLessEqual(float(row["far_mean"]), float(row["alpha"]) + 1e-9)
+        s05 = {r["base_estimator"]: r for r in sweep if abs(float(r["alpha"]) - 0.005) < 1e-9}
+        self.assertEqual(float(s05["hard_ds_raw"]["recall_accept_mean"]), 0.0)
+        self.assertGreater(float(s05["sup_soft_ds_temp"]["recall_accept_mean"]), 0.40)
+
 
 if __name__ == "__main__":
     unittest.main()

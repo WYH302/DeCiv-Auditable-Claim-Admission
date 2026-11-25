@@ -2,12 +2,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/Tests-15%2F15%20Passing-success.svg)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-16%2F16%20Passing-success.svg)](tests/)
 [![GPU Compute](https://img.shields.io/badge/RTX%203090-0.830%20GPU--hours-orange.svg)](results/gpu_compute_profile.csv)
 
 > **Official Reproducibility Repository** for *DeCiv: Auditable Claim Admission for Persistent Knowledge Stores via Epistemic–Governance Decoupling*.
 >
-> **中文导览**：本仓库为论文 **《DeCiv：基于认知—治理双解耦的可审计持久化知识库声明准入防火墙》** 的官方开源复现代码库，完整包含理论证明对应算法（**PG-CRC 溯源门控共形风险控制**、**相关性崩溃与温度缩放校准**）、**374.5× 向量化软/硬 Dawid–Skene**、**RFC 9162 Merkle 透明日志**，以及在单卡 **RTX 3090** 上基于 **4 大异构真实开源模型**（`DeBERTa-v3-Large`、`BART-Large-MNLI`、`Meta-Llama-3.1-8B-Instruct`、`Qwen3.5-9B`）的端到端 **BGE-large + FAISS + Llama-3.1-8B** 稠密 RAG 防污染实验与 **`revise` 自动化修复闭环实验**（全套 15 项自动化单元测试 `15/15 PASS`）。
+> **中文导览**：本仓库为论文 **《DeCiv：基于认知—治理双解耦的可审计持久化知识库声明准入防火墙》** 的官方开源复现代码库，完整包含理论证明对应算法（**PG-CRC 溯源门控共形风险控制**、**相关性崩溃与温度缩放校准**）、**374.5× 向量化软/硬 Dawid–Skene**、**RFC 9162 Merkle 透明日志**，以及在单卡 **RTX 3090** 上基于 **4 大异构真实开源模型**（`DeBERTa-v3-Large`、`BART-Large-MNLI`、`Meta-Llama-3.1-8B-Instruct`、`Qwen3.5-9B`）的跨家族多样性消融、PG-CRC 全预算扫描、端到端 **BGE-large + FAISS + Llama-3.1-8B** 稠密 RAG 防污染实验与 **`revise` 自动化修复闭环实验**（全套 16 项自动化单元测试 `16/16 PASS`）。
 
 ---
 
@@ -51,6 +51,10 @@ Scored across 1,200 real full-text claim–evidence packets (`FEVER`, `SciFact`,
 
 ![Real Verifiers and Correlation](figures/real_verifiers_and_correlation.png)
 
+- **Cross-Family Diversity Ablation & 12/12 PG-CRC Risk-Budget Sweep (`run_trans_ablations.py`)**: A homogeneous `LLM-Only` ensemble (`Llama-3.1-8B + Qwen3.5-9B`, $\hat{\rho}=0.481$) collapses to `52.92%` accuracy and **`0.0%` `revise` recall** (`0.499` cost), whereas the full 4-model cross-family ensemble raises accuracy by `+19.9 pp` (`72.83%`) and recovers `62.0%` `revise` recall (`100.0%` queue precision). Across all 12 risk-budget points ($\alpha \in \{0.5\%, 1.0\%, 1.5\%, 2.0\%, 3.0\%, 5.0\%\}$), PG-CRC achieves **12/12 strict `FAR <= alpha` compliance**, and calibration prevents accept-recall collapse at tight $\alpha = 0.5\%$ (`47.0%` vs. `0.0%` for uncalibrated Hard-DS).
+
+![Cross-Family Diversity and PG-CRC Sweep](figures/trans_diversity_and_pgcrc_sweep.png)
+
 ### C. End-to-End Dense RAG Contamination Defense & Closed-Loop `revise` Remediation
 
 Evaluated on 150 real open-ended QA queries (`75 HotpotQA + 75 TruthfulQA`) using `BAAI/bge-large-en-v1.5` + `FAISS IndexFlatIP` + `Meta-Llama-3.1-8B-Instruct` (`0.830` total RTX 3090 GPU-hours across all stages):
@@ -86,14 +90,15 @@ python run_comparison.py
 # 2. Calibration, PG-CRC, correlated-error stress, noisy gate, and RFC 9162 Merkle scaling
 python run_plan1_upgrades.py
 
-# 3. Real 4-model heterogeneous neural verifier evaluation (from cached GPU probabilities)
+# 3. Real 4-model heterogeneous neural verifier evaluation & cross-family / PG-CRC ablations
 python evaluate_real_verifiers.py
+python run_trans_ablations.py
 
 # 4. Regenerate all publication figures (300 DPI PNG + vector PDF)
 python scripts/plot_figures.py
 python scripts/plot_upgraded_figures.py
 
-# 5. Run all 15 automated verification tests
+# 5. Run all 16 automated verification tests
 pytest tests -v
 ```
 

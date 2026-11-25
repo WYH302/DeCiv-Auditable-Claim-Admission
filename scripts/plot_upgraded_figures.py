@@ -224,8 +224,8 @@ def plot_rag_defense_and_remediation() -> None:
         ("majority_direct", "Majority\nDirect"),
         ("conformal_risk", "Conformal\n(ICLR '24)"),
         ("deciv_hard_ds_raw", "DeCiv\nHard-DS\n(raw)"),
-        ("deciv_soft_ds_sup_temp", "DeCiv\nSup-Soft-DS\n+ Temp"),
-        ("deciv_plus_revise", "DeCiv +\nAuto-Revise\nLoop"),
+        ("deciv_soft_ds_sup_temp", "DeCiv\nSup-Soft\n+ Temp"),
+        ("deciv_plus_revise", "DeCiv\n+ Revise\nLoop"),
         ("deciv_sup_pg_crc_005", "DeCiv +\nPG-CRC\n(α=0.005)"),
     ]
     x = np.arange(len(regimes))
@@ -245,7 +245,7 @@ def plot_rag_defense_and_remediation() -> None:
                      ha="center", va="bottom", fontsize=6.5, fontweight="bold", color="#000000")
 
     ax1.set_xticks(x)
-    ax1.set_xticklabels([lbl for _, lbl in regimes], fontsize=7.6, fontweight="bold")
+    ax1.set_xticklabels([lbl for _, lbl in regimes], fontsize=7.3, fontweight="bold")
     ax1.set_ylabel("Contamination / Poisoning Rate (%)", fontweight="bold")
     ax1.set_ylim(0, 104)
     ax1.grid(True, axis="y", alpha=0.6)
