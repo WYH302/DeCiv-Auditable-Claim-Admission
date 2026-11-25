@@ -1,0 +1,19 @@
+poison_copies_m,regime_id,label,total_index_size,poison_top3_retrieval_rate,downstream_poisoning_asr,downstream_qa_accuracy_sup100,trustworthy_qa_accuracy_safe150,query_defense_latency_ms
+1,no_filter,No Admission Filter (Unfiltered),11200,0.9067,0.14,0.76,0.5733,0.0
+1,reliabilityrag_2025,"ReliabilityRAG (NeurIPS 2025, Query-Time)",11200,0.1867,0.0533,0.9,0.6333,727.61
+1,seconrag_2025,"SeCon-RAG (NeurIPS 2025, Query-Time)",11200,0.1933,0.0467,0.9,0.6333,727.59
+1,conformal_risk_gated,Conformal-Risk (ICLR 2024) + Gate,10187,0.06,0.02,0.86,0.86,0.0
+1,deciv_strict_plus_revise,DeCiv + Sup-Soft-DS + Auto-Revise Loop,10296,0.0133,0.0067,0.83,0.86,0.0
+1,deciv_caf_plus_revise,DeCiv-CAF + PG-CRC + Auto-Revise Loop,10318,0.04,0.0133,0.83,0.8333,0.0
+3,no_filter,No Admission Filter (Unfiltered),11800,0.9933,0.3067,0.58,0.42,0.0
+3,reliabilityrag_2025,"ReliabilityRAG (NeurIPS 2025, Query-Time)",11800,0.8,0.5533,0.43,0.3,199.99
+3,seconrag_2025,"SeCon-RAG (NeurIPS 2025, Query-Time)",11800,0.78,0.5267,0.49,0.34,199.95
+3,conformal_risk_gated,Conformal-Risk (ICLR 2024) + Gate,10215,0.06,0.0133,0.87,0.8667,0.0
+3,deciv_strict_plus_revise,DeCiv + Sup-Soft-DS + Auto-Revise Loop,10300,0.0133,0.0067,0.83,0.86,0.0
+3,deciv_caf_plus_revise,DeCiv-CAF + PG-CRC + Auto-Revise Loop,10332,0.04,0.0133,0.83,0.8333,0.0
+5,no_filter,No Admission Filter (Unfiltered),12400,0.9933,0.4,0.53,0.38,0.0
+5,reliabilityrag_2025,"ReliabilityRAG (NeurIPS 2025, Query-Time)",12400,0.8867,0.62,0.34,0.24,271.46
+5,seconrag_2025,"SeCon-RAG (NeurIPS 2025, Query-Time)",12400,0.86,0.5933,0.39,0.2733,271.42
+5,conformal_risk_gated,Conformal-Risk (ICLR 2024) + Gate,10243,0.06,0.0133,0.87,0.8667,0.0
+5,deciv_strict_plus_revise,DeCiv + Sup-Soft-DS + Auto-Revise Loop,10304,0.0133,0.0067,0.83,0.86,0.0
+5,deciv_caf_plus_revise,DeCiv-CAF + PG-CRC + Auto-Revise Loop,10346,0.04,0.0133,0.83,0.8333,0.0
