@@ -388,6 +388,257 @@ def calibrate_pg_crc_threshold(
 
 
 # ---------------------------------------------------------------------------
+# 3b. Correlation-Aware Calibrated Epistemic Fusion (DeCiv-CAF) & Decoupled PG-CRC
+# ---------------------------------------------------------------------------
+
+def build_caf_epistemic_features(
+    soft_probs: np.ndarray,
+    family_groups: Sequence[Sequence[int]] | None = None,
+) -> np.ndarray:
+    """Construct pure Stage-I correlation-aware epistemic features from K verifier simplexes.
+
+    Uses ONLY continuous neural verifier probability tensors Q in R^{N x K x C} (zero
+    provenance/governance metadata or text leakage):
+      1. Raw verifier simplex probabilities (N, K*C)
+      2. Centered domain-invariant log-odds coordinates (N, K*C) generalizing Soft Dawid-Skene
+      3. Cross-family consensus products (Theorem 2 correlation-aware interaction terms)
+    """
+    p = np.clip(np.asarray(soft_probs, dtype=np.float64), 1e-6, 1.0)
+    n, k, c = p.shape
+    logp = np.log(p)
+    clr = logp - np.mean(logp, axis=2, keepdims=True)
+    feats = [p.reshape(n, -1), clr.reshape(n, -1)]
+
+    if family_groups is None:
+        if k == 5:
+            family_groups = ((0, 1), (2, 3), (4,))
+        elif k == 4:
+            family_groups = ((0, 1), (2, 3))
+        else:
+            family_groups = tuple((j,) for j in range(k))
+
+    fam_means = [np.mean(p[:, list(grp), :], axis=1) for grp in family_groups]
+    if len(fam_means) == 3:
+        # NLI x Frontier and OpenLLM x Frontier consensus products
+        feats.append(fam_means[0] * fam_means[2])
+        feats.append(fam_means[1] * fam_means[2])
+    elif len(fam_means) >= 2:
+        for a in range(len(fam_means)):
+            for b in range(a + 1, len(fam_means)):
+                feats.append(fam_means[a] * fam_means[b])
+    return np.hstack(feats)
+
+
+class CorrelationAwareFusion:
+    """Correlation-Aware Calibrated Epistemic Fusion (DeCiv-CAF) for Stage I.
+
+    Directly resolves Theorem 2's conditional-independence breakdown by fusing
+    per-verifier probabilities, centered log-odds, and cross-family consensus products
+    via a regularized hybrid ensemble (L2 multinomial log-linear + shallow GBDT +
+    regularized ExtraTrees) calibrated with strictly nested out-of-fold temperature scaling.
+    """
+
+    def __init__(
+        self,
+        reg_c: float = 0.10,
+        family_groups: Sequence[Sequence[int]] | None = None,
+        max_iter: int = 1000,
+    ) -> None:
+        self.reg_c = float(reg_c)
+        self.family_groups = family_groups
+        self.max_iter = int(max_iter)
+        self.scaler_ = None
+        self.lr_ = None
+        self.gb_ = None
+        self.et_ = None
+        self.temperature_: float = 1.0
+
+    def _fit_base(self, X: np.ndarray, y: np.ndarray):
+        from sklearn.ensemble import ExtraTreesClassifier, HistGradientBoostingClassifier
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.preprocessing import StandardScaler
+
+        sc = StandardScaler().fit(X)
+        lr = LogisticRegression(C=self.reg_c, max_iter=self.max_iter).fit(sc.transform(X), y)
+        gb = HistGradientBoostingClassifier(
+            max_depth=3,
+            max_iter=80,
+            learning_rate=0.05,
+            l2_regularization=5.0,
+            min_samples_leaf=15,
+            random_state=42,
+        ).fit(X, y)
+        et = ExtraTreesClassifier(
+            n_estimators=120,
+            max_depth=8,
+            min_samples_leaf=4,
+            n_jobs=-1,
+            random_state=42,
+        ).fit(X, y)
+        return sc, lr, gb, et
+
+    @staticmethod
+    def _predict_base(X: np.ndarray, sc, lr, gb, et) -> np.ndarray:
+        return (
+            0.50 * lr.predict_proba(sc.transform(X))
+            + 0.30 * gb.predict_proba(X)
+            + 0.20 * et.predict_proba(X)
+        )
+
+    def fit_with_inner_oof(
+        self,
+        soft_probs: np.ndarray,
+        y_true: np.ndarray,
+        group_ids: Sequence[str],
+    ) -> np.ndarray:
+        """Fit DeCiv-CAF on training fold and return unbiased inner-OOF calibrated probabilities."""
+        X = build_caf_epistemic_features(soft_probs, self.family_groups)
+        y = np.asarray(y_true, dtype=np.int64)
+        groups = np.asarray(group_ids)
+        uniq_g = sorted(set(groups.tolist()))
+
+        if len(uniq_g) <= 6:
+            folds = [groups == g for g in uniq_g]
+        else:
+            g_to_f = {g: idx % 5 for idx, g in enumerate(uniq_g)}
+            f_arr = np.array([g_to_f[g] for g in groups], dtype=np.int64)
+            folds = [f_arr == f for f in range(5)]
+
+        inner_raw = np.zeros((len(y), 4), dtype=np.float64)
+        for val_mask in folds:
+            tr_mask = ~val_mask
+            if not np.any(val_mask) or not np.any(tr_mask):
+                continue
+            sc, lr, gb, et = self._fit_base(X[tr_mask], y[tr_mask])
+            inner_raw[val_mask] = self._predict_base(X[val_mask], sc, lr, gb, et)
+
+        self.temperature_ = fit_temperature(inner_raw, y)
+        inner_cal = apply_temperature(inner_raw, self.temperature_)
+
+        self.scaler_, self.lr_, self.gb_, self.et_ = self._fit_base(X, y)
+        return inner_cal
+
+    def predict_proba(self, soft_probs: np.ndarray, apply_temp: bool = True) -> np.ndarray:
+        assert self.scaler_ is not None and self.lr_ is not None
+        X = build_caf_epistemic_features(soft_probs, self.family_groups)
+        raw = self._predict_base(X, self.scaler_, self.lr_, self.gb_, self.et_)
+        if apply_temp and abs(self.temperature_ - 1.0) > 1e-12:
+            return apply_temperature(raw, self.temperature_)
+        return raw
+
+
+def route_projected_pg_crc(
+    posterior: Sequence[float],
+    context: dict[str, str],
+    tau_accept: float,
+) -> tuple[str, bool]:
+    """Mass-preserving admissibility-projected PG-CRC router (Theorem 1 exact, EVR = 0).
+
+    1. Hard admissibility holds (accept in A_elig(g_i)) AND p_sup >= tau_accept -> accept.
+    2. Otherwise, any probability mass on blocked actions (`accept`, and `revise` when
+       non-repairable) projects cleanly onto quarantine escalation (`defer`) rather than
+       forcing erroneous rejections, and selects the maximum-probability admissible action.
+    """
+    p = np.asarray(posterior, dtype=np.float64)
+    allowed, _ = eligible_actions(context)
+    if "accept" in allowed and float(p[0]) >= tau_accept:
+        return "accept", True
+    q = p.copy()
+    q[3] += q[0]
+    q[0] = 0.0
+    if "revise" not in allowed:
+        q[3] += q[2]
+        q[2] = 0.0
+    rem = allowed - {"accept"}
+    best_q = max(float(q[ACTION_IDX[a]]) for a in rem)
+    action = next(a for a in TIE_ORDER if a in rem and float(q[ACTION_IDX[a]]) >= best_q - 1e-12)
+    return action, action in allowed
+
+
+def route_decoupled_pg_crc(
+    posterior: Sequence[float],
+    context: dict[str, str],
+    tau_accept: float,
+    defer_cost: float = 2.0,
+) -> tuple[str, bool]:
+    """Decoupled Provenance-Gated Conformal Risk Control (PG-CRC) router.
+
+    Decouples acceptance strictly onto the Theorem 1 monotone threshold tau_accept
+    so well-calibrated posteriors are never choked by an implicit cost floor:
+      1. Hard admissibility holds (accept in A_elig(g_i)) AND p_sup >= tau_accept -> accept.
+      2. Otherwise, expected asymmetric risk selects strictly inside A_elig(g_i) \\ {accept}.
+    Guarantees EVR = 0 deterministically and exact monotonicity of I[a_tau(x)=accept] in tau.
+    """
+    p = np.asarray(posterior, dtype=np.float64)
+    allowed, _ = eligible_actions(context)
+    if "accept" in allowed and float(p[0]) >= tau_accept:
+        return "accept", True
+    rem = allowed - {"accept"}
+    costs = BASE_COST.copy()
+    costs[3, :3] = defer_cost
+    risks = costs @ p
+    best = min(risks[ACTION_IDX[a]] for a in rem)
+    action = next(a for a in TIE_ORDER if a in rem and risks[ACTION_IDX[a]] <= best + 1e-12)
+    return action, action in allowed
+
+
+def calibrate_decoupled_pg_crc_threshold(
+    cal_posteriors: np.ndarray,
+    cal_contexts: Sequence[dict[str, str]],
+    cal_ref_actions: Sequence[str],
+    cal_parent_ids: Sequence[str],
+    alpha: float = 0.01,
+) -> tuple[float, dict[str, float]]:
+    """Calibrate parent-cluster threshold tau_hat for route_decoupled_pg_crc (Theorem 1 exact)."""
+    cal_posteriors = np.asarray(cal_posteriors, dtype=np.float64)
+    p_sup = cal_posteriors[:, 0]
+    elig_acc = np.array(["accept" in eligible_actions(c)[0] for c in cal_contexts], dtype=bool)
+    is_non_acc = np.array([r != "accept" for r in cal_ref_actions], dtype=bool)
+
+    clusters: dict[str, list[int]] = {}
+    for idx, pid in enumerate(cal_parent_ids):
+        clusters.setdefault(pid, []).append(idx)
+    n_cal = len(clusters)
+
+    cands = sorted(set([0.0] + [min(1.0, float(p_sup[i]) + 1e-12) for i in range(len(cal_ref_actions)) if elig_acc[i]] + [1.0 + 1e-9]))
+
+    cluster_nonacc_ps: list[tuple[np.ndarray, int]] = []
+    for idxs in clusters.values():
+        idxs_arr = np.asarray(idxs, dtype=np.int64)
+        nonacc_mask = is_non_acc[idxs_arr]
+        denom = int(np.sum(nonacc_mask))
+        if denom > 0:
+            fa_cands = idxs_arr[nonacc_mask & elig_acc[idxs_arr]]
+            cluster_nonacc_ps.append((p_sup[fa_cands], denom))
+        else:
+            cluster_nonacc_ps.append((np.empty(0, dtype=np.float64), 0))
+
+    chosen_tau = 1.0 + 1e-9
+    chosen_emp = 0.0
+    chosen_rhs = 1.0 / (n_cal + 1.0)
+    for tau in cands:
+        tot_loss = 0.0
+        for ps, denom in cluster_nonacc_ps:
+            if denom > 0 and ps.size > 0:
+                tot_loss += float(np.sum(ps >= tau)) / denom
+        emp = tot_loss / n_cal
+        rhs = (n_cal / (n_cal + 1.0)) * emp + (1.0 / (n_cal + 1.0))
+        if rhs <= alpha + 1e-15:
+            chosen_tau = float(tau)
+            chosen_emp = float(emp)
+            chosen_rhs = float(rhs)
+            break
+
+    return chosen_tau, {
+        "n_cal_clusters": float(n_cal),
+        "alpha": float(alpha),
+        "tau_hat": chosen_tau,
+        "cal_empirical_cluster_far": chosen_emp,
+        "crc_upper_bound": chosen_rhs,
+    }
+
+
+# ---------------------------------------------------------------------------
 # 4. RFC 9162 Domain-Separated Merkle Transparency Log
 # ---------------------------------------------------------------------------
 

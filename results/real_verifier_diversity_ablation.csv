@@ -1,8 +1,8 @@
-subset_id,label,k_models,mean_pair_rho,accuracy,far,accept_precision,recall_revise,cost,ece,nll,cv5_cost,pgcrc005_far,pgcrc005_cost
-nli_only,NLI-Only (DeBERTa + BART),2,0.393,0.5933,0.002,0.977,0.64,0.3575,0.0495,0.662,0.3692,0.001,0.3467
-llm_only,LLM-Only (Llama-3.1-8B + Qwen3.5-9B),2,0.481,0.5292,0.008,0.9355,0.0,0.4988,0.0608,0.7716,0.4021,0.001,0.4062
-drop_deberta,3-Model w/o DeBERTa-v3,3,0.259,0.6667,0.004,0.972,0.48,0.3858,0.0278,0.62,0.3767,0.001,0.3608
-drop_bart,3-Model w/o BART-Large,3,0.287,0.735,0.012,0.9221,0.61,0.4671,0.0281,0.6141,0.3675,0.005,0.3808
-drop_llama,3-Model w/o Llama-3.1-8B,3,0.264,0.71,0.005,0.9648,0.635,0.4233,0.0234,0.5705,0.4025,0.001,0.3867
-drop_qwen,3-Model w/o Qwen3.5-9B,3,0.223,0.6583,0.005,0.9528,0.635,0.385,0.0345,0.6238,0.3538,0.0,0.3171
-full_4_cross,Full 4-Model Cross-Family (DeCiv),4,0.258,0.7283,0.007,0.9545,0.62,0.3975,0.0363,0.5618,0.3417,0.001,0.3329
+subset_id,label,k_models,accuracy,far,accept_precision,recall_accept,recall_revise,cost,risk_d05_cost,ece,nll
+nli_only,NLI-Only (DeBERTa + BART),2,0.7817,0.016,0.873,0.55,0.85,0.7192,0.355,0.0243,0.5367
+open_llm_only,Open-LLM-Only (Llama + Qwen),2,0.7442,0.013,0.8713,0.44,0.73,0.67,0.4037,0.0596,0.7823
+frontier_only,Frontier-Only (GPT-6.1-Sol),1,0.7858,0.009,0.85,0.255,0.88,0.5563,0.4171,0.0236,0.4847
+open_4model,Open-Weight 4-Model (NLI + Open-LLM),4,0.8342,0.018,0.8889,0.72,0.89,0.7346,0.3546,0.0228,0.4685
+nli_frontier,NLI + Frontier (3-Model),3,0.8758,0.012,0.9259,0.75,0.92,0.5292,0.3504,0.0254,0.3674
+llm_frontier,Open-LLM + Frontier (3-Model),3,0.875,0.012,0.9306,0.805,0.89,0.565,0.3588,0.0171,0.4615
+full_5_3fam,Full 5-Model 3-Family (DeCiv-CAF),5,0.8858,0.01,0.9425,0.82,0.9,0.5212,0.3287,0.0217,0.3683

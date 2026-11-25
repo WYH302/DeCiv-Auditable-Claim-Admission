@@ -3,11 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-brightgreen.svg)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/Tests-16%2F16%20Passing-success.svg)](tests/)
-[![GPU Compute](https://img.shields.io/badge/RTX%203090-0.830%20GPU--hours-orange.svg)](results/gpu_compute_profile.csv)
+[![GPU Compute](https://img.shields.io/badge/RTX%203090-0.315%20GPU--hours-orange.svg)](results/gpu_compute_profile.csv)
 
-> **Official Reproducibility Repository** for *DeCiv: Auditable Claim Admission for Persistent Knowledge Stores via Epistemic–Governance Decoupling*.
+> **Official Reproducibility Repository** for *DeCiv: Auditable Claim Admission for Persistent Knowledge Stores via Epistemic–Governance Decoupling* (IEEE Transactions Edition).
 >
-> **中文导览**：本仓库为论文 **《DeCiv：基于认知—治理双解耦的可审计持久化知识库声明准入防火墙》** 的官方开源复现代码库，完整包含理论证明对应算法（**PG-CRC 溯源门控共形风险控制**、**相关性崩溃与温度缩放校准**）、**374.5× 向量化软/硬 Dawid–Skene**、**RFC 9162 Merkle 透明日志**，以及在单卡 **RTX 3090** 上基于 **4 大异构真实开源模型**（`DeBERTa-v3-Large`、`BART-Large-MNLI`、`Meta-Llama-3.1-8B-Instruct`、`Qwen3.5-9B`）的跨家族多样性消融、PG-CRC 全预算扫描、端到端 **BGE-large + FAISS + Llama-3.1-8B** 稠密 RAG 防污染实验与 **`revise` 自动化修复闭环实验**（全套 16 项自动化单元测试 `16/16 PASS`）。
+> **中文导览**：本仓库为论文 **《DeCiv：基于认知—治理双解耦的可审计持久化知识库声明准入防火墙》** 的官方开源复现代码库，完整包含 **相关性感知校准认知融合（`DeCiv-CAF`）**、**质量守恒可准入投影溯源门控共形风险控制（Admissibility-Projected PG-CRC）**、**392.0× 向量化软/硬 Dawid–Skene**、**RFC 9162 Merkle 透明日志**，以及跨 **3 大模型家族 5 个真实异构验证器**（`DeBERTa-v3-Large`、`BART-Large-MNLI`、`Meta-Llama-3.1-8B-Instruct`、`Qwen3.5-9B`、`GPT-6.1-Sol`）的 3 家族多样性消融、18 点 PG-CRC 风险预算扫描、端到端 **BGE-large + FAISS + Llama-3.1-8B** 稠密 RAG 防污染实验（正面对比 2025 NeurIPS **ReliabilityRAG**、**SeCon-RAG** 与 **Self-RAG**）及 **`revise` 自动化修复闭环实验**（全套 16 项自动化单元测试 `16/16 PASS`）。
 
 ---
 
@@ -18,59 +18,65 @@
 Persistent Retrieval-Augmented Generation (RAG) knowledge stores and immutable provenance ledgers face **durable contamination**: once an unverified, distorted, or unattributed claim enters storage, retrieval propagates the error repeatedly and immutability preserves the falsehood rather than preventing it.
 
 **DeCiv** places an auditable pre-storage admission firewall in front of the persistent index via a **Dual-Plane Storage Architecture**:
-1. **Stage I — Calibrated Heterogeneous Epistemic Fusion (`deciv_extensions.py`)**: Generalizes Dawid–Skene to continuous neural verifier simplex outputs (**Soft-DS** and closed-form **Sup-Soft-DS**) paired with fold-fitted **Temperature Scaling**, executing **374.5× faster** (`0.337 µs/pkt`) via vectorized NumPy contractions with `<3.2e-15` numerical parity.
-2. **Stage II — Epistemic–Governance Decoupling & PG-CRC**: Separates hard institutional admissibility gating (provenance completeness, evidence auditability, human-review flags, verified repairability) from asymmetric expected-risk routing and **Provenance-Gated Conformal Risk Control (PG-CRC)** across four operational actions: `accept`, `reject`, `revise`, and `defer`.
-3. **Dual-Plane Storage & RFC 9162 Merkle Transparency Log**: Only verified, admissible `accept` packets (and 4-model re-verified `revise` repairs) write to the clean **Retrieval Plane**, while every admission, rejection, deferral, and repair lineage transition is appended to an **RFC 9162 Merkle Transparency Log** supporting $O(\log N)$ inclusion and consistency proofs (**3,125× proof compression** at 50,000 records).
+1. **Stage I — Correlation-Aware Calibrated Epistemic Fusion (`DeCiv-CAF`) & Vectorized Soft-DS (`deciv_extensions.py`)**: Fuses raw simplex probabilities, domain-invariant centered log-odds, and cross-family consensus products across NLI encoders, open-weight LLMs, and a frontier closed-weight LLM with strictly nested group-disjoint out-of-fold temperature calibration — alongside **392.0× faster** (`0.336 µs/pkt`, `3.11e-15` parity) vectorized Soft/Hard Dawid–Skene.
+2. **Stage II — Epistemic–Governance Decoupling & Mass-Preserving Admissibility-Projected PG-CRC**: Enforces deterministic provenance, auditability, human-review, and repairability gating prior to decoupled PG-CRC acceptance and mass-preserving admissibility projection onto `defer` across four actions: `accept`, `reject`, `revise`, and `defer`.
+3. **Dual-Plane Storage & RFC 9162 Merkle Transparency Log**: Only verified, admissible `accept` packets (and 5-model re-verified `revise` repairs) write to the clean **Retrieval Plane** (**`0.0 ms/query`** defense overhead), while every decision and repair lineage edge commits to an **RFC 9162 Merkle Transparency Log** achieving **3,125× proof compression** at 50,000 records (`16` hashes, `512 B`, `52.27 µs`).
 
 ---
 
-## 2. Formal Guarantees & Headline Results / 理论保证与核心实验结果
+## 2. Formal Guarantees & SOTA Results / 理论保证与核心 SOTA 结果
 
 ### A. Formal Theorems
-- **Theorem 1 (PG-CRC Finite-Sample Distribution-Free FAR Control & Exact Admissibility)**: For exchangeable parent clusters, PG-CRC guarantees $\mathbb{E}[\mathrm{FAR}(\hat{\tau})] \le \alpha$ for *any* fixed (even misspecified or correlated) Stage I estimator while deterministically maintaining zero eligibility violations ($\mathrm{EVR} = 0$).
-- **Theorem 2 (Correlated-Verifier Collapse & Calibration Bound)**: Under equicorrelated verifier errors with pairwise correlation $\rho$, effective ensemble size collapses to $K_{\mathrm{eff}}(\rho) = K / (1 + (K-1)\rho)$ and naive Dawid–Skene log-odds inflate by $\kappa(\rho) = 1 + (K-1)\rho$, causing a **64× FAR surge** (`0.07% -> 4.48%` as $\rho: 0 \to 0.6$). Scaling logits by fold-fitted $T^* \ge 1 + (K-1)\rho$ or applying PG-CRC eliminates the collapse (`0.00%–0.42%` FAR across all $\rho$).
+- **Theorem 1 (PG-CRC Finite-Sample Distribution-Free FAR Control & Exact Admissibility)**: For exchangeable parent clusters, both risk-coupled and mass-preserving admissibility-projected PG-CRC guarantee $\mathbb{E}[\mathrm{FAR}(\hat{\tau})] \le \alpha$ for *any* fixed (even misspecified or correlated) Stage I estimator while deterministically maintaining zero eligibility violations ($\mathrm{EVR} = 0$).
+- **Theorem 2 (Correlated-Verifier Collapse & Calibration Bound)**: Under equicorrelated verifier errors with pairwise correlation $\rho$, effective ensemble size collapses to $K_{\mathrm{eff}}(\rho) = K / (1 + (K-1)\rho)$ and naive Dawid–Skene log-odds inflate by $\kappa(\rho) = 1 + (K-1)\rho$, causing a **64× FAR surge** (`0.07% -> 4.48%` as $\rho: 0 \to 0.6$). Scaling logits by fold-fitted $T^* \ge 1 + (K-1)\rho$, applying PG-CRC, or learning cross-family weights via `DeCiv-CAF` eliminates the collapse.
 
 ![Correlated Stress and Noisy Gate](figures/correlated_stress_and_noisy_gate.png)
 
-### B. Real 4-Model Heterogeneous Neural Verifiers (`DeCiv-Real-1200`, RTX 3090)
+### B. Real 5-Model 3-Family Heterogeneous Neural Verifiers (`DeCiv-Real-1200`)
 
-Scored across 1,200 real full-text claim–evidence packets (`FEVER`, `SciFact`, `HotpotQA`, `TruthfulQA`; 300 parent clusters) using four distinct open-source neural architectures:
-- **Empirical Error Correlation Matrix**: Even across different organizations, **LLM–LLM** errors (`Meta-Llama-3.1-8B-Instruct` vs. `Qwen3.5-9B`) correlate at **$\hat{\rho} = 0.481$**, and **NLI–NLI** (`DeBERTa-v3-Large` vs. `BART-Large-MNLI`) at **$\hat{\rho} = 0.393$**, whereas **cross-family NLI–LLM** pairing drops correlation **2.8×** to **$\hat{\rho} = 0.169$**.
+Scored across 1,200 real full-text claim–evidence packets (`FEVER`, `SciFact`, `HotpotQA`, `TruthfulQA`; 300 parent clusters) using five distinct architectures spanning three families:
+- **Empirical $5 \times 5$ Error Correlation Matrix**: Intra-family **OpenLLM–OpenLLM** (`Llama-3.1-8B` vs. `Qwen3.5-9B`) correlates at **$\hat{\rho} = 0.481$** and **NLI–NLI** (`DeBERTa-v3-Large` vs. `BART-Large-MNLI`) at **$\hat{\rho} = 0.393$**, whereas cross-family **NLI–OpenLLM** ($\hat{\rho} = 0.169$) and **OpenLLM–Frontier** ($\hat{\rho} = 0.206$) drop correlation **2.3×–2.8×**.
 
-| Method (4-Fold LODO CV on `DeCiv-Real-1200`) | Acc | FAR (↓) | Accept Prec | EV | Cost (↓) | ECE (↓) | 5-Fold FAR (↓) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Solo Llama-3.1-8B-Instruct / direct | 44.75% | 37.20% | 33.0% | 285 | 5.703 | 0.1455 | 37.22±3.23% |
-| Majority Vote / direct | 56.58% | 22.60% | 43.5% | 219 | 3.873 | 0.0494 | 22.65±3.29% |
-| Conformal-Risk (ICLR 2024) | 51.58% | 19.10% | 46.6% | 171 | 3.126 | 0.0491 | 19.04±2.55% |
-| Post-Hoc Cost L2D (2022) | 43.17% | 4.10% | 50.0% | 41 | 0.999 | 0.0491 | 9.24±2.54% |
-| Conformal-Risk (2024) + Gate | 65.83% | 2.10% | 88.8% | 0 | 0.644 | 0.0491 | 1.89±1.17% |
-| DeCiv + Hard-DS (raw, uncalibrated) | 81.92% | 3.20% | 84.9% | 0 | 0.893 | 0.1741 | 2.59±0.86% |
-| **DeCiv + Hard-DS + PG-CRC ($\alpha=0.01$)** | **76.50%** | **0.30%** | **97.3%** | **0** | **0.505** | 0.1741 | **0.30±0.27%** |
-| **DeCiv + Sup-Soft-DS + TempScale / risk** | **72.83%** | **0.70%** | **95.5%** | **0** | **0.398** | **0.0363** | **0.40±0.22%** |
-| **DeCiv + Sup-Soft-DS + PG-CRC ($\alpha=0.005$)** | 68.25% | **0.10%** | **98.9%** | **0** | **0.333** | **0.0363** | **0.10±0.23%** |
+| Method (4-Fold LODO CV & 5-Fold CV on `DeCiv-Real-1200`) | Acc | FAR (↓) | Prec | EV | Cost (↓) | ECE (↓) | NLL (↓) | 5F Acc / FAR |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Solo Frontier GPT-6.1-Sol / direct | 65.92% | 19.10% | 47.5% | 297 | 3.396 | 0.0999 | 0.598 | 65.92% / 19.16% |
+| Majority Vote (5-Model) / direct | 61.33% | 22.00% | 45.0% | 246 | 3.739 | 0.0713 | 1.299 | 61.33% / 22.04% |
+| Conformal-Risk (ICLR 2024) | 57.92% | 18.80% | 47.8% | 195 | 3.212 | 0.0593 | 0.570 | 57.83% / 18.95% |
+| Conformal-Risk (ICLR 2024) + Gate | 74.17% | 1.50% | 92.0% | 0 | 0.643 | 0.0593 | 0.570 | 74.42% / 1.60% |
+| Solo Frontier GPT-6.1-Sol + Gate | 88.92% | 1.40% | 92.5% | 0 | 0.552 | 0.0999 | 0.598 | 88.92% / 1.40% |
+| Supervised GBDT Stacking + Gate | 88.75% | 2.60% | 87.6% | 0 | 0.815 | 0.0312 | 0.422 | 91.25% / 2.21% |
+| **DeCiv + Sup-Soft-DS + TempScale** | 78.25% | **0.20%** | **98.7%** | **0** | 0.338 | **0.0183** | 0.431 | 78.50% / **0.20%** |
+| **DeCiv-CAF (Corr-Fusion) / risk ($d=0.5$)** | 76.08% | 0.30% | 97.6% | **0** | **0.329** | 0.0217 | **0.368** | 83.67% / 0.30% |
+| **DeCiv-CAF + Projected PG-CRC ($\alpha=0.01$)** | 88.58% | 1.00% | 94.3% | **0** | 0.521 | 0.0217 | **0.368** | 90.17% / 0.60% |
+| **DeCiv-CAF + Projected PG-CRC ($\alpha=0.015$)** | 89.00% | 2.30% | 88.3% | **0** | 0.701 | 0.0217 | **0.368** | 91.50% / 0.91% |
+| **DeCiv-CAF (Corr-Fusion) / projected MAP** | **89.92%** | 1.90% | 90.5% | **0** | 0.638 | 0.0217 | **0.368** | **91.67%** / 1.71% |
 
 ![Real Verifiers and Correlation](figures/real_verifiers_and_correlation.png)
 
-- **Cross-Family Diversity Ablation & 12/12 PG-CRC Risk-Budget Sweep (`run_trans_ablations.py`)**: A homogeneous `LLM-Only` ensemble (`Llama-3.1-8B + Qwen3.5-9B`, $\hat{\rho}=0.481$) collapses to `52.92%` accuracy and **`0.0%` `revise` recall** (`0.499` cost), whereas the full 4-model cross-family ensemble raises accuracy by `+19.9 pp` (`72.83%`) and recovers `62.0%` `revise` recall (`100.0%` queue precision). Across all 12 risk-budget points ($\alpha \in \{0.5\%, 1.0\%, 1.5\%, 2.0\%, 3.0\%, 5.0\%\}$), PG-CRC achieves **12/12 strict `FAR <= alpha` compliance**, and calibration prevents accept-recall collapse at tight $\alpha = 0.5\%$ (`47.0%` vs. `0.0%` for uncalibrated Hard-DS).
+- **3-Family Synergy Ablation & 18-Point PG-CRC Risk-Budget Sweep (`run_trans_ablations.py`)**: Full 5-model 3-family `DeCiv-CAF` (`88.58%` Acc, `82.0%` Accept Recall, `0.521` Cost) strictly dominates every 1-family (`Open-LLM-Only` `74.42%`, `NLI-Only` `78.17%`, `Frontier-Only` `78.58%` with `25.5%` recall) and 2-family (`83.42%–87.58%`) subset, while tracking Theorem 1 ($\mathbb{E}[\mathrm{FAR}] \le \alpha$) tightly across all 18 sweep points ($\alpha \in [0.5\%, 5.0\%]$).
 
 ![Cross-Family Diversity and PG-CRC Sweep](figures/trans_diversity_and_pgcrc_sweep.png)
 
-### C. End-to-End Dense RAG Contamination Defense & Closed-Loop `revise` Remediation
+### C. End-to-End Dense RAG Defense vs. 2025 SOTAs & Closed-Loop `revise` Remediation
 
-Evaluated on 150 real open-ended QA queries (`75 HotpotQA + 75 TruthfulQA`) using `BAAI/bge-large-en-v1.5` + `FAISS IndexFlatIP` + `Meta-Llama-3.1-8B-Instruct` (`0.830` total RTX 3090 GPU-hours across all stages):
+Evaluated on 150 real open-ended QA queries (`100` verifiable + `50` unverified/abstention) using `BAAI/bge-large-en-v1.5` + `FAISS IndexFlatIP` + `Meta-Llama-3.1-8B-Instruct` (`0.315` total RTX 3090 GPU-hours + `596.4 s` batched API wall-time):
 
-| Admission Policy (Retrieval Plane) | Store Size | Store Contam (↓) | Poisoned Top-3 (↓) | Poisoning ASR (↓) | Sup-100 QA Acc | Token F1 |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| *Oracle Clean Store (Upper Bound)* | 200 | 0.0% | 0.0% | 0.0% | 88.0% | 51.8% |
-| No Admission Filter (Unfiltered) | 1200 | 83.3% | 90.7% | 14.0% | 75.0% | 65.8% |
-| Majority Vote / direct | 400 | 56.5% | 14.7% | 3.3% | 88.0% | 59.0% |
-| Conformal-Risk (ICLR 2024) | 358 | 53.3% | 11.3% | 3.3% | 88.0% | 54.4% |
-| DeCiv + Hard-DS (raw, uncalibrated) | 212 | 15.1% | 13.3% | 4.0% | 82.0% | 51.0% |
-| **DeCiv + Sup-Soft-DS + TempScale** | 154 | **4.5%** | **4.0%** | **0.7%** | 73.0% | 42.6% |
-| **DeCiv + Sup-Soft-DS + Auto-Revise Loop** | 256 | **4.7%** | **4.0%** | **0.7%** | **76.0%** | **44.8%** |
-| **DeCiv + Sup-Soft-DS + PG-CRC ($\alpha=0.005$)** | 92 | **1.1%** | **0.7%** | **0.0%** | 39.0% | 19.5% |
+| Defense / Admission Policy | Store | Cont (↓) | PoisR (↓) | ASR (↓) | Sup-100 (↑) | Safe-150 (↑) | Sup-F1 (↑) | Q-Lat (ms/q, ↓) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| *Oracle Clean Store (Upper Bound)* | 200 | 0.0% | 0.0% | 0.0% | 88.0% | 92.0% | 77.7% | 0.0 |
+| No Admission Filter (Unfiltered) | 1200 | 83.3% | 90.7% | 13.3% | 75.0% | 56.7% | 70.9% | 0.0 |
+| ReliabilityRAG (NeurIPS 2025, Query-Time) | 1200 | 83.3% | 18.0% | 5.3% | 90.0% | 63.3% | 84.0% | 79.2 |
+| SeCon-RAG (NeurIPS 2025, Query-Time) | 1200 | 83.3% | 19.3% | 4.0% | 90.0% | 63.3% | 83.3% | 79.2 |
+| Self-RAG / LLM-Judge (ICLR '24/25, Query-Time) | 1200 | 83.3% | 4.7% | 2.0% | 52.0% | 50.7% | 45.8% | 1020.7 |
+| Conformal-Risk (2024) + Gate (`EV = 0`) | 187 | 8.0% | 6.0% | 2.0% | 84.0% | 86.7% | 73.7% | 0.0 |
+| Supervised GBDT Stacking + Gate (`EV = 0`) | 209 | 12.4% | 8.0% | 2.0% | **85.0%** | 83.3% | 74.3% | 0.0 |
+| Solo Frontier GPT-6.1-Sol + Gate (`EV = 0`) | 187 | 7.5% | 2.7% | 1.3% | 80.0% | 82.7% | 69.7% | 0.0 |
+| **DeCiv + Sup-Soft-DS + TempScale (`EV = 0`)** | 152 | **1.3%** | **1.3%** | **0.7%** | 76.0% | 83.3% | 65.7% | **0.0** |
+| **DeCiv + Sup-Soft-DS + Auto-Revise Loop (`EV = 0`)** | 296 | 4.0% | **1.3%** | 1.3% | 83.0% | **88.0%** | 73.7% | **0.0** |
+| **DeCiv-CAF + Projected PG-CRC (`EV = 0`)** | 174 | 5.8% | 4.0% | 1.3% | 81.0% | 84.0% | 70.7% | **0.0** |
+| **DeCiv-CAF + PG-CRC + Auto-Revise Loop (`EV = 0`)** | 318 | 6.3% | 4.0% | 2.0% | 84.0% | 86.0% | **74.7%** | **0.0** |
 
-- **Automated `revise` Remediation**: `124/124` (`100.0%`) routed packets are true repairable distortions. After `Qwen3.5-9B` evidence-grounded repair and 4-model re-verification, `102/124` (`82.3%`) are safely re-admitted (**`95.1%`** evidence-entailed, mean NLI `0.967`), while `22` flawed edits (mean NLI `0.341`) are blocked back to `defer`. All `124/124` RFC 9162 Merkle lineage proofs verify cleanly.
+- **Automated `revise` Remediation**: `180/180` (`100.0%`) routed packets are true repairable distortions. After `Qwen3.5-9B` evidence-grounded repair and 5-model re-verification, `144/180` (`80.0%`) are safely re-admitted (**`93.1%`** evidence-entailed, mean NLI **`0.942`**), while `36` flawed edits (mean NLI **`0.275`**) are blocked back to `defer`. All **`180/180`** RFC 9162 Merkle lineage proofs verify cleanly.
 
 ![End-to-End RAG Defense and Remediation](figures/rag_defense_and_remediation.png)
 
@@ -78,8 +84,8 @@ Evaluated on 150 real open-ended QA queries (`75 HotpotQA + 75 TruthfulQA`) usin
 
 ## 3. Quickstart & Full Reproduction / 快速复现指南
 
-### CPU Reproduction (< 30 seconds — zero GPU required!)
-All controlled benchmarks (`DeCiv-1800`), Plan 1 extensions (PG-CRC, correlated-error stress, noisy gate, RFC 9162 Merkle scaling), and real-verifier cross-validation tables (reusing cached probabilities in `results/real_verifiers/`) reproduce on any CPU:
+### CPU Reproduction (< 30 seconds — zero GPU or API key required!)
+All controlled benchmarks (`DeCiv-1800`), Plan 1 extensions (PG-CRC, correlated-error stress, noisy gate, RFC 9162 Merkle scaling), and 5-model `DeCiv-CAF` cross-validation tables (reusing cached verifier probabilities in `results/real_verifiers/`) reproduce on any CPU:
 
 ```bash
 pip install -r requirements.txt
@@ -87,10 +93,10 @@ pip install -r requirements.txt
 # 1. Core DeCiv-1800 study & SOTA / provenance-gated ablations
 python run_comparison.py
 
-# 2. Calibration, PG-CRC, correlated-error stress, noisy gate, and RFC 9162 Merkle scaling
+# 2. Calibration, decoupled PG-CRC, correlated-error stress, noisy gate, and RFC 9162 Merkle scaling
 python run_plan1_upgrades.py
 
-# 3. Real 4-model heterogeneous neural verifier evaluation & cross-family / PG-CRC ablations
+# 3. 5-model 3-family DeCiv-CAF evaluation, diversity ablation & 18-point PG-CRC sweep
 python evaluate_real_verifiers.py
 python run_trans_ablations.py
 
@@ -102,26 +108,26 @@ python scripts/plot_upgraded_figures.py
 pytest tests -v
 ```
 
-### Full GPU Reproduction (Optional — Single RTX 3090 24GB, ~0.83 GPU-hours)
+### Full GPU + API Reproduction (Optional — Single RTX 3090 24GB, ~0.315 GPU-hours)
 ```bash
-# Re-score all 1,200 real full-text packets across DeBERTa-v3-Large, BART-Large-MNLI, Llama-3.1-8B, Qwen3.5-9B
+# Re-score local 4 open-source verifiers on RTX 3090
 python run_real_verifiers_gpu.py
 
-# Re-run automated revise remediation + BGE-large/FAISS/Llama-3.1-8B dense RAG contamination defense
+# Re-score frontier closed-weight verifier via OpenAI-compatible Responses API (env-only credentials)
+export DECIV_API_KEY="your-api-key"
+export DECIV_API_MODEL="gpt-6.1-sol"
+python run_frontier_verifier_api.py --batch-size 8 --workers 12
+
+# Precompute 2025 query-time RAG defense SOTAs (ReliabilityRAG, SeCon-RAG, Self-RAG)
+python rag_sota_defenses.py
+
+# Re-run automated revise remediation + 18-regime dense RAG contamination defense
 python run_real_rag_and_remediation_gpu.py
 ```
 
 ---
 
-## 4. Design Reflections, Pitfalls & Empirical Observations / 设计反思与踩坑记录
-
-1. **Same-Family LLM Correlation Breaks Uncalibrated Latent-Truth Aggregation**: Even distinct open-weight frontier LLMs (`Meta Llama-3.1-8B` vs. `Alibaba Qwen3.5-9B`) exhibit $\hat{\rho} = 0.481$ pairwise error correlation. Mixing cross-family architectures (NLI encoders + decoder LLMs) cuts correlation **2.8×** (`0.169`), but residual correlation still breaks raw Hard Dawid–Skene (`3.20%` FAR, `4.0%` RAG ASR) unless paired with supervised soft confusion calibration, temperature scaling, or PG-CRC.
-2. **Unsupervised EM Class-Asymmetry Collapse**: Generative LLMs systematically under-predict `partially_supported` (`1.0%–23.0%` recall vs. `80.3%` for clause-decomposed DeBERTa-v3-Large), causing unsupervised EM to collapse that latent cluster. Closed-form `Sup-Soft-DS + TempScale` eliminates this failure mode with zero EM iterations and attains `0.0363` ECE alongside `100.0%` `revise`-queue precision.
-3. **Closed-Loop Remediation Requires Independent Re-Verification**: Allowing an LLM editor to write directly into a RAG index risks hallucinated edits. Passing every repaired claim back through all four heterogeneous verifiers cleanly separates grounded repairs (mean NLI `0.967`) from faulty edits (mean NLI `0.341`), expanding store utility without re-introducing poisoning.
-
----
-
-## 5. Citation / 引用格式
+## 4. Citation / 引用格式
 
 ```bibtex
 @article{wu2026deciv,

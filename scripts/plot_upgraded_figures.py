@@ -1,4 +1,4 @@
-"""Generate publication-grade Plan 1 & Plan 2 figures (300 DPI PNG + vector PDF).
+"""Generate publication-grade Plan 1 & Plan 2+ IEEE Transactions figures (300 DPI PNG + vector PDF).
 
 Strict typographic rules:
   - Pure black (#000000) for all axes, ticks, titles, legends, and annotations
@@ -25,7 +25,7 @@ FIGS.mkdir(parents=True, exist_ok=True)
 plt.rcParams.update(
     {
         "font.family": "DejaVu Sans",
-        "font.size": 9.5,
+        "font.size": 9.3,
         "axes.edgecolor": "#000000",
         "axes.labelcolor": "#000000",
         "axes.titlecolor": "#000000",
@@ -54,7 +54,6 @@ def plot_correlated_stress_and_noisy_gate() -> None:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.2, 4.35), dpi=300)
     fig.subplots_adjust(left=0.07, right=0.93, top=0.91, bottom=0.22, wspace=0.32)
 
-    # --- Panel (a): Correlated-Verifier Collapse Stress Test ---
     rhos = sorted({float(r["rho"]) for r in stress})
     series = [
         ("deciv_ds_raw", "DeCiv + Hard-DS (raw)", "#C0392B", "o", "-"),
@@ -76,7 +75,6 @@ def plot_correlated_stress_and_noisy_gate() -> None:
     ax1.set_ylim(-0.15, 5.2)
     ax1.grid(True, alpha=0.6)
 
-    # Secondary y-axis: automatically fitted temperature T* for DS + TempScale
     ax1_r = ax1.twinx()
     sub_t = {float(r["rho"]): float(r["mean_fitted_temp"]) for r in stress if r["method_id"] == "deciv_ds_temp"}
     ts = [sub_t[rh] for rh in rhos]
@@ -85,7 +83,6 @@ def plot_correlated_stress_and_noisy_gate() -> None:
     ax1_r.set_ylim(0.5, 6.2)
     ax1_r.tick_params(axis="y", colors="#000000")
 
-    # Combine legends cleanly
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax1_r.get_legend_handles_labels()
     ax1.legend(h1 + h2, l1 + l2, loc="upper left", fontsize=7.6, frameon=True, facecolor="white", edgecolor="#000000", framealpha=0.95)
@@ -93,7 +90,6 @@ def plot_correlated_stress_and_noisy_gate() -> None:
                  fontsize=7.8, fontweight="bold", color="#000000",
                  arrowprops=dict(arrowstyle="->", color="#000000", lw=1.0))
 
-    # --- Panel (b): Noisy Metadata Gate Sensitivity ---
     sub_n = [r for r in noisy if r["method"] == "ds_temp"]
     etas = [float(r["noise_rate"]) * 100.0 for r in sub_n]
     fars = [float(r["far_mean"]) * 100.0 for r in sub_n]
@@ -136,73 +132,82 @@ def plot_real_verifiers_and_correlation() -> None:
     corr_rows = read_csv("real_verifier_correlation.csv")
     adm_rows = {r["method_id"]: r for r in read_csv("real_admission_metrics.csv")}
 
-    fig = plt.figure(figsize=(12.2, 4.65), dpi=300)
-    # Explicit non-overlapping axes: Panel (a) + colorbar on left, generous margin, Panel (b) on right
-    ax1 = fig.add_axes([0.11, 0.22, 0.28, 0.70])
-    cax = fig.add_axes([0.402, 0.22, 0.015, 0.70])
-    ax2 = fig.add_axes([0.655, 0.22, 0.325, 0.70])
+    fig = plt.figure(figsize=(12.6, 4.85), dpi=300)
+    ax1 = fig.add_axes([0.11, 0.23, 0.285, 0.69])
+    cax = fig.add_axes([0.408, 0.23, 0.015, 0.69])
+    ax2 = fig.add_axes([0.655, 0.23, 0.325, 0.69])
 
-    # --- Panel (a): 4x4 Empirical Error Correlation Heatmap ---
-    vids = ["deberta_v3_large", "bart_large_mnli", "llama31_8b", "qwen35_9b"]
-    vlabels = ["DeBERTa-v3\n(Encoder NLI)", "BART-Large\n(Enc-Dec NLI)", "Llama-3.1-8B\n(Decoder LLM)", "Qwen3.5-9B\n(Decoder LLM)"]
-    mat = np.zeros((4, 4), dtype=float)
+    # --- Panel (a): 5x5 Three-Family Empirical Error Correlation Heatmap ---
+    vids = ["deberta_v3_large", "bart_large_mnli", "llama31_8b", "qwen35_9b", "gpt61_sol"]
+    vlabels = [
+        "DeBERTa-v3\n(Enc NLI)",
+        "BART-Large\n(Enc-Dec NLI)",
+        "Llama-3.1-8B\n(Open LLM)",
+        "Qwen3.5-9B\n(Open LLM)",
+        "GPT-6.1-Sol\n(Frontier)",
+    ]
+    mat = np.zeros((5, 5), dtype=float)
     lookup = {(r["verifier_i"], r["verifier_j"]): float(r["error_pearson_rho"]) for r in corr_rows}
     for i, vi in enumerate(vids):
         for j, vj in enumerate(vids):
             mat[i, j] = lookup[(vi, vj)]
 
     im = ax1.imshow(mat, cmap="YlOrRd", vmin=0.0, vmax=1.0, aspect="auto")
-    ax1.set_xticks(range(4))
-    ax1.set_yticks(range(4))
-    ax1.set_xticklabels(vlabels, fontsize=7.6, fontweight="bold", rotation=18, ha="right")
-    ax1.set_yticklabels(vlabels, fontsize=7.6, fontweight="bold")
+    ax1.set_xticks(range(5))
+    ax1.set_yticks(range(5))
+    ax1.set_xticklabels(vlabels, fontsize=7.1, fontweight="bold", rotation=22, ha="right")
+    ax1.set_yticklabels(vlabels, fontsize=7.1, fontweight="bold")
 
-    for i in range(4):
-        for j in range(4):
+    for i in range(5):
+        for j in range(5):
             val = mat[i, j]
-            txt = "1.000" if i == j else f"{val:.3f}"
-            ax1.text(j, i, txt, ha="center", va="center", fontsize=9.0, fontweight="bold",
-                     color="#000000" if val < 0.75 else "#FFFFFF")
+            txt = "1.00" if i == j else f"{val:.3f}"
+            ax1.text(j, i, txt, ha="center", va="center", fontsize=8.0, fontweight="bold",
+                     color="#000000" if val < 0.72 else "#FFFFFF")
 
-    ax1.axhline(1.5, color="#000000", linewidth=1.6, linestyle="--")
-    ax1.axvline(1.5, color="#000000", linewidth=1.6, linestyle="--")
+    # Dashed family boundaries between NLI (0-1), Open LLM (2-3), Frontier (4)
+    for b in (1.5, 3.5):
+        ax1.axhline(b, color="#000000", linewidth=1.4, linestyle="--")
+        ax1.axvline(b, color="#000000", linewidth=1.4, linestyle="--")
     cbar = fig.colorbar(im, cax=cax)
     cbar.set_label("Error Pearson Correlation ρ̂", fontsize=8.2, fontweight="bold", color="#000000")
     cbar.ax.tick_params(labelsize=8, colors="#000000")
 
-    # --- Panel (b): Real 4-Model Out-of-Fold Cost & FAR Comparison ---
+    # --- Panel (b): 5-Model Safety-Utility Pareto (Policy Accuracy vs Institutional Cost) ---
     show = [
         ("solo_llama31_8b_direct", "Solo Llama-3.1-8B / direct", "#95A5A6"),
         ("majority_direct", "Majority Vote / direct", "#7F8C8D"),
         ("conformal_risk", "Conformal-Risk (ICLR '24)", "#D35400"),
-        ("posthoc_l2d", "Post-Hoc Cost L2D ('22)", "#CA6F1E"),
-        ("deciv_hard_ds_raw", "DeCiv + Hard-DS (raw)", "#C0392B"),
-        ("conformal_risk_gated", "Conformal-Risk + Gate", "#E67E22"),
-        ("deciv_hard_ds_pg_crc_010", "DeCiv + Hard-DS + PG-CRC", "#2980B9"),
-        ("deciv_soft_ds_sup_temp", "DeCiv + Sup-Soft-DS + Temp", "#1F618D"),
-        ("deciv_sup_pg_crc_005", "DeCiv + Sup-Soft-DS + PG-CRC", "#1E8449"),
+        ("solo_gpt61_sol_direct", "Solo Frontier GPT-6.1 / direct", "#E67E22"),
+        ("conformal_risk_gated", "Conformal-Risk + Gate", "#F39C12"),
+        ("gbdt_stack_gated", "GBDT Stacking + Gate", "#8E44AD"),
+        ("solo_gpt61_sol_gated", "Solo Frontier GPT-6.1 + Gate", "#2980B9"),
+        ("deciv_caf_pg_crc_010", "DeCiv-CAF + PG-CRC (α=0.01)", "#1F618D"),
+        ("deciv_caf_gated_map", "DeCiv-CAF / projected MAP", "#1E8449"),
     ]
     y_pos = np.arange(len(show))
-    costs = [float(adm_rows[m]["mean_institutional_cost"]) for m, _, _ in show]
+    accs = [float(adm_rows[m]["accuracy"]) * 100.0 for m, _, _ in show]
     fars = [float(adm_rows[m]["far"]) * 100.0 for m, _, _ in show]
+    costs = [float(adm_rows[m]["mean_institutional_cost"]) for m, _, _ in show]
     cols = [c for _, _, c in show]
     labels = [l for _, l, _ in show]
 
-    bars = ax2.barh(y_pos, costs, color=cols, edgecolor="#000000", linewidth=0.7, height=0.66)
+    bars = ax2.barh(y_pos, accs, color=cols, edgecolor="#000000", linewidth=0.7, height=0.66)
     ax2.set_yticks(y_pos)
-    ax2.set_yticklabels(labels, fontsize=8.1, fontweight="bold")
+    ax2.set_yticklabels(labels, fontsize=7.8, fontweight="bold")
     ax2.invert_yaxis()
-    ax2.set_xlabel("Mean Realized Institutional Cost (↓ Lower is Better)", fontweight="bold")
-    ax2.set_xlim(0, 8.65)
+    ax2.set_xlabel("4-Class Policy Accuracy (↑ %) with FAR & Cost", fontweight="bold")
+    ax2.set_xlim(0, 158)
+    ax2.set_xticks([0, 20, 40, 60, 80, 100])
     ax2.grid(True, axis="x", alpha=0.6)
 
-    for bar, cost, far in zip(bars, costs, fars):
-        ax2.text(cost + 0.12, bar.get_y() + bar.get_height() / 2.0,
-                 f"{cost:.3f} (FAR {far:.1f}%)", va="center", ha="left",
-                 fontsize=7.6, fontweight="bold", color="#000000")
+    for bar, acc, far, cost in zip(bars, accs, fars, costs):
+        ax2.text(acc + 1.5, bar.get_y() + bar.get_height() / 2.0,
+                 f"{acc:.1f}% (FAR {far:.1f}%, C={cost:.2f})", va="center", ha="left",
+                 fontsize=7.0, fontweight="bold", color="#000000")
 
-    fig.text(0.255, 0.032, "(a) Empirical Inter-Model Error Correlation (DeCiv-Real-1200)", ha="center", va="center", fontsize=9.3, fontweight="bold", color="#000000")
-    fig.text(0.75, 0.032, "(b) Real 4-Model Admission Risk & FAR (4-Fold LODO CV)", ha="center", va="center", fontsize=9.3, fontweight="bold", color="#000000")
+    fig.text(0.255, 0.032, "(a) 5-Model 3-Family Error Correlation Matrix (DeCiv-Real-1200)", ha="center", va="center", fontsize=9.1, fontweight="bold", color="#000000")
+    fig.text(0.76, 0.032, "(b) 5-Model Policy Accuracy, FAR & Cost (4-Fold LODO CV)", ha="center", va="center", fontsize=9.1, fontweight="bold", color="#000000")
 
     for ext in ("pdf", "png"):
         fig.savefig(FIGS / f"real_verifiers_and_correlation.{ext}", dpi=300)
@@ -213,49 +218,50 @@ def plot_real_verifiers_and_correlation() -> None:
 def plot_rag_defense_and_remediation() -> None:
     rag_rows = {r["regime_id"]: r for r in read_csv("real_rag_defense_metrics.csv")}
     rem_recs = [json.loads(l) for l in (RESULTS / "real_remediation_samples.jsonl").open(encoding="utf-8")]
+    rem_sum = json.loads((RESULTS / "real_remediation_metrics.json").read_text(encoding="utf-8"))
     merkle = read_csv("merkle_scaling.csv")
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.55), dpi=300, gridspec_kw={"width_ratios": [1.35, 1.0]})
-    fig.subplots_adjust(left=0.065, right=0.96, top=0.90, bottom=0.25, wspace=0.28)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12.2, 4.6), dpi=300, gridspec_kw={"width_ratios": [1.45, 1.0]})
+    fig.subplots_adjust(left=0.06, right=0.96, top=0.90, bottom=0.26, wspace=0.26)
 
-    # --- Panel (a): End-to-End Dense RAG Contamination Defense ---
+    # --- Panel (a): End-to-End Dense RAG Defense vs 2025 Query-Time & Write-Time SOTAs ---
     regimes = [
         ("no_filter", "No Filter\n(Unfiltered)"),
-        ("majority_direct", "Majority\nDirect"),
-        ("conformal_risk", "Conformal\n(ICLR '24)"),
-        ("deciv_hard_ds_raw", "DeCiv\nHard-DS\n(raw)"),
-        ("deciv_soft_ds_sup_temp", "DeCiv\nSup-Soft\n+ Temp"),
-        ("deciv_plus_revise", "DeCiv\n+ Revise\nLoop"),
-        ("deciv_sup_pg_crc_005", "DeCiv +\nPG-CRC\n(α=0.005)"),
+        ("reliabilityrag_2025", "Reliability\nRAG ('25)"),
+        ("seconrag_2025", "SeCon-\nRAG ('25)"),
+        ("selfrag_llm_filter", "Self-RAG\nFilter"),
+        ("conformal_risk_gated", "Conformal\n+ Gate"),
+        ("solo_gpt61_sol_gated", "GPT-6.1\n+ Gate"),
+        ("deciv_soft_ds_sup_temp", "DeCiv\nSup-DS"),
+        ("deciv_strict_plus_revise", "DeCiv +\nAuto-Revise"),
     ]
     x = np.arange(len(regimes))
     w = 0.26
-    contam = [float(rag_rows[r]["store_contamination_rate"]) * 100.0 for r, _ in regimes]
-    pois_r = [float(rag_rows[r]["poison_top3_retrieval_rate"]) * 100.0 for r, _ in regimes]
+    safe150 = [float(rag_rows[r]["trustworthy_qa_accuracy_safe150"]) * 100.0 for r, _ in regimes]
+    sup100 = [float(rag_rows[r]["downstream_qa_accuracy_sup100"]) * 100.0 for r, _ in regimes]
     asr = [float(rag_rows[r]["downstream_poisoning_asr"]) * 100.0 for r, _ in regimes]
+    oracle_safe = float(rag_rows["oracle_clean"]["trustworthy_qa_accuracy_safe150"]) * 100.0
 
-    b1 = ax1.bar(x - w, contam, width=w, color="#C0392B", edgecolor="#000000", linewidth=0.6, label="Store Contamination (%)")
-    b2 = ax1.bar(x, pois_r, width=w, color="#E67E22", edgecolor="#000000", linewidth=0.6, label="Poisoned Top-3 Retrieval (%)")
-    b3 = ax1.bar(x + w, asr, width=w, color="#1F618D", edgecolor="#000000", linewidth=0.6, label="Downstream Poisoning ASR (↓ %)")
+    b1 = ax1.bar(x - w, safe150, width=w, color="#1E8449", edgecolor="#000000", linewidth=0.6, label="Trustworthy QA Safe-150 (↑ %)")
+    b2 = ax1.bar(x, sup100, width=w, color="#2980B9", edgecolor="#000000", linewidth=0.6, label="Clean Verified QA Sup-100 (↑ %)")
+    b3 = ax1.bar(x + w, asr, width=w, color="#C0392B", edgecolor="#000000", linewidth=0.6, label="Downstream Poisoning ASR (↓ %)")
+    ax1.axhline(oracle_safe, color="#145A32", linestyle="--", linewidth=1.2, label=f"Oracle Clean Safe-150 ({oracle_safe:.1f}%)")
 
     for bars in (b1, b2, b3):
         for bar in bars:
             h = bar.get_height()
             ax1.text(bar.get_x() + bar.get_width() / 2.0, h + 1.3, f"{h:.1f}" if h < 10 else f"{h:.0f}",
-                     ha="center", va="bottom", fontsize=6.5, fontweight="bold", color="#000000")
+                     ha="center", va="bottom", fontsize=6.0, fontweight="bold", color="#000000",
+                     bbox=dict(facecolor="white", edgecolor="none", pad=0.4, alpha=0.88))
 
     ax1.set_xticks(x)
-    ax1.set_xticklabels([lbl for _, lbl in regimes], fontsize=7.3, fontweight="bold")
-    ax1.set_ylabel("Contamination / Poisoning Rate (%)", fontweight="bold")
-    ax1.set_ylim(0, 104)
+    ax1.set_xticklabels([lbl for _, lbl in regimes], fontsize=7.0, fontweight="bold")
+    ax1.set_ylabel("QA Accuracy / Poisoning ASR (%)", fontweight="bold")
+    ax1.set_ylim(0, 118)
     ax1.grid(True, axis="y", alpha=0.6)
-    ax1.legend(loc="upper right", fontsize=7.8, frameon=True, facecolor="white", edgecolor="#000000")
+    ax1.legend(loc="upper right", ncol=2, fontsize=6.8, frameon=True, facecolor="white", edgecolor="#000000")
 
-    ax1.annotate("0.0% ASR\n(Oracle parity)", xy=(6 + w, 5.5), xytext=(4.85, 36),
-                 fontsize=7.8, fontweight="bold", color="#000000",
-                 arrowprops=dict(arrowstyle="->", color="#000000", lw=1.0))
-
-    # --- Panel (b): Automated revise-Queue Re-Verification Quality + Merkle Scaling Inset ---
+    # --- Panel (b): Automated revise-Queue Re-Verification Quality + Merkle Scaling ---
     readm_nli = [r["nli_ev_supports_repaired"] for r in rem_recs if r["reverified_action"] == "accept"]
     defer_nli = [r["nli_ev_supports_repaired"] for r in rem_recs if r["reverified_action"] != "accept"]
 
@@ -268,25 +274,23 @@ def plot_rag_defense_and_remediation() -> None:
     ax2.set_xlabel("Primary-Evidence Entailment Score P(Ev ⇒ Repaired)", fontweight="bold")
     ax2.set_ylabel("Number of Repaired Claims", fontweight="bold")
     ax2.set_xlim(-0.02, 1.02)
-    ax2.set_ylim(0, 106)
+    ax2.set_ylim(0, max(115, len(readm_nli) + 25))
     ax2.grid(True, axis="y", alpha=0.6)
-    ax2.legend(loc="upper left", fontsize=7.6, frameon=True, facecolor="white", edgecolor="#000000")
+    ax2.legend(loc="upper left", fontsize=7.4, frameon=True, facecolor="white", edgecolor="#000000")
 
-    # Compact clean summary box inside Panel (b) showing Merkle O(log N) verification
     m50 = [r for r in merkle if int(r["log_records"]) == 50000][0]
     info_txt = (
-        f"Closed-Loop Remediation:\n"
-        f"• 95.1% re-admitted grounded\n"
-        f"• Sup-100 RAG Acc: 73% → 76%\n"
-        f"• Merkle proofs: 124/124 OK\n"
-        f"• At N=50k: {m50['inclusion_proof_hashes']} hashes "
-        f"({m50['inclusion_verify_us']} µs)"
+        f"Closed-Loop Remediation (DeCiv-CAF):\n"
+        f"• Queue precision: {rem_sum['revise_queue_precision']*100:.1f}%\n"
+        f"• Re-admitted grounded: {rem_sum['readmitted_evidence_entailment_rate']*100:.1f}%\n"
+        f"• Merkle lineage proofs: {rem_sum['merkle_proofs_verified']} OK\n"
+        f"• At N=50k: {m50['inclusion_proof_hashes']} hashes ({m50['inclusion_verify_us']} µs)"
     )
-    ax2.text(0.04, 0.57, info_txt, transform=ax2.transAxes, fontsize=7.4, va="top", ha="left",
+    ax2.text(0.04, 0.56, info_txt, transform=ax2.transAxes, fontsize=7.2, va="top", ha="left",
              bbox=dict(boxstyle="round,pad=0.35", facecolor="#F8F9F9", edgecolor="#000000", linewidth=0.8))
 
-    fig.text(0.30, 0.035, "(a) End-to-End Dense RAG Defense (BGE-large + FAISS + Llama-3.1-8B)", ha="center", va="center", fontsize=8.9, fontweight="bold", color="#000000")
-    fig.text(0.795, 0.035, "(b) Automated revise Re-Verification & Merkle Lineage", ha="center", va="center", fontsize=8.9, fontweight="bold", color="#000000")
+    fig.text(0.32, 0.035, "(a) End-to-End Dense RAG Defense vs. 2025 SOTAs (BGE + FAISS + Llama-3.1-8B)", ha="center", va="center", fontsize=8.8, fontweight="bold", color="#000000")
+    fig.text(0.80, 0.035, "(b) Automated revise 5-Model Re-Verification & Merkle Lineage", ha="center", va="center", fontsize=8.8, fontweight="bold", color="#000000")
 
     for ext in ("pdf", "png"):
         fig.savefig(FIGS / f"rag_defense_and_remediation.{ext}", dpi=300)

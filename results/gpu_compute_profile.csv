@@ -3,6 +3,7 @@ Stage I Verifier: deberta_v3_large,MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli
 Stage I Verifier: bart_large_mnli,facebook/bart-large-mnli,900,30.07,0.00835,29.93,2.299
 Stage I Verifier: llama31_8b,Meta-Llama-3.1-8B-Instruct,900,156.37,0.04344,5.76,9.206
 Stage I Verifier: qwen35_9b,Qwen/Qwen3.5-9B,900,324.11,0.09003,2.78,6.684
-Automated revise-Queue Remediation,Qwen/Qwen3.5-9B,124,201.96,0.0561,0.61,6.684
-RAG Dense Indexing (BGE-large-en-v1.5),BAAI/bge-large-en-v1.5,1452,4.01,0.00111,361.95,0.832
-End-to-End RAG QA Generation,Meta-Llama-3.1-8B-Instruct,567,2261.97,0.62833,0.25,9.206
+Stage I Verifier: gpt61_sol,gpt-6.1-sol,900,596.42,0.16567,1.51,0.0
+Automated revise-Queue Remediation,Qwen/Qwen3.5-9B,180,424.14,0.11782,0.42,6.786
+RAG Dense Indexing (BGE-large-en-v1.5),BAAI/bge-large-en-v1.5,1494,3.74,0.00104,399.9,0.831
+End-to-End RAG QA Generation,Meta-Llama-3.1-8B-Instruct,693,187.0,0.05194,3.71,5.922

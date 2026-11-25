@@ -1,4 +1,4 @@
 log_records,tree_build_ms,inclusion_proof_hashes,inclusion_proof_bytes,inclusion_verify_us,consistency_proof_hashes,consistency_verify_us,linear_chain_verify_hashes,proof_compression_ratio
-1800,7.86,11,352,49.99,10,41.94,1800,163.6
-10000,39.18,14,448,58.13,12,57.75,10000,714.3
-50000,176.23,16,512,65.23,14,68.44,50000,3125.0
+1800,8.53,11,352,57.26,10,24.55,1800,163.6
+10000,29.27,14,448,42.48,12,39.93,10000,714.3
+50000,181.19,16,512,52.27,14,66.51,50000,3125.0

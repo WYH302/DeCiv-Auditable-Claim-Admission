@@ -27,10 +27,12 @@ from deciv_extensions import (
     MerkleTransparencyLog,
     VectorizedDawidSkene,
     apply_temperature,
+    calibrate_decoupled_pg_crc_threshold,
     calibrate_pg_crc_threshold,
     calibration_metrics,
     eligible_actions,
     fit_temperature,
+    route_decoupled_pg_crc,
     route_pg_crc,
     route_risk,
 )
@@ -117,9 +119,11 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
         "ds_temp",
         "bayes_oracle",
     ]
-    preds_4f = {m: {} for m in methods}
+    preds_4f = {m: {} for m in methods + ["ds_sup_temp"]}
     pgcrc_taus_010 = {}
     pgcrc_taus_005 = {}
+    dec_taus_010 = {}
+    dec_taus_005 = {}
     temp_by_fold = {}
 
     for src in sources:
@@ -165,7 +169,7 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
         ).copy()
         p_te_oracle, _ = VectorizedDawidSkene._e_step_hard(v_te, prior_tr, oracle_conf)
 
-        # Calibrate PG-CRC threshold on training parent clusters using raw DS posteriors
+        # Calibrate PG-CRC threshold on training parent clusters
         tr_ctxs = [contexts[r["audit_join_id"]] for r in tr]
         tr_refs = [reference_action(targets[r["audit_join_id"]], contexts[r["audit_join_id"]]) for r in tr]
         tr_pids = [r["parent_id"] for r in tr]
@@ -173,6 +177,13 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
         tau_005, info_005 = calibrate_pg_crc_threshold(p_tr_raw, tr_ctxs, tr_refs, tr_pids, alpha=0.005)
         pgcrc_taus_010[src] = tau_010
         pgcrc_taus_005[src] = tau_005
+
+        p_tr_sup = ds_sup.predict_proba_hard(v_tr, apply_temp=False)
+        t_sup = fit_temperature(p_tr_sup, y_tr)
+        p_tr_sup_t = apply_temperature(p_tr_sup, t_sup)
+        p_te_sup_t = apply_temperature(p_te_sup, t_sup)
+        dec_taus_010[src], _ = calibrate_decoupled_pg_crc_threshold(p_tr_sup_t, tr_ctxs, tr_refs, tr_pids, alpha=0.01)
+        dec_taus_005[src], _ = calibrate_decoupled_pg_crc_threshold(p_tr_sup_t, tr_ctxs, tr_refs, tr_pids, alpha=0.005)
 
         for i, r in enumerate(te):
             k = r["audit_join_id"]
@@ -184,6 +195,7 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
             preds_4f["ds_raw"][k] = p_te_raw[i].tolist()
             preds_4f["ds_map_5"][k] = p_te_map5[i].tolist()
             preds_4f["ds_sup_mle"][k] = p_te_sup[i].tolist()
+            preds_4f["ds_sup_temp"][k] = p_te_sup_t[i].tolist()
             preds_4f["ds_temp"][k] = p_te_temp[i].tolist()
             preds_4f["bayes_oracle"][k] = p_te_oracle[i].tolist()
 
@@ -211,6 +223,8 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
         ("ds_temp", "DeCiv + DS + TempScale / risk", "ds_temp", "risk"),
         ("pg_crc_010", "DeCiv + DS + PG-CRC (alpha=0.01)", "ds_raw", "pg_crc_010"),
         ("pg_crc_005", "DeCiv + DS + PG-CRC (alpha=0.005)", "ds_raw", "pg_crc_005"),
+        ("dec_pg_crc_005", "DeCiv + DS-Sup + Decoupled PG-CRC (alpha=0.005)", "ds_sup_temp", "dec_pg_crc_005"),
+        ("dec_pg_crc_010_d20", "DeCiv + DS-Sup + Decoupled PG-CRC (alpha=0.01, d=2)", "ds_sup_temp", "dec_pg_crc_010_d20"),
         ("bayes_oracle", "Bayes-Oracle (0.7/0.1 + fold prior) / risk", "bayes_oracle", "risk"),
     ]
 
@@ -235,7 +249,12 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
         t_opt = fit_temperature(p_tr_raw, y_tr)
         p_te_temp = apply_temperature(p_te_raw, t_opt)
         p_te_map5 = VectorizedDawidSkene(smoothing=5.0).fit_hard(v_tr).predict_proba_hard(v_te, apply_temp=False)
-        p_te_sup = VectorizedDawidSkene(smoothing=1.0).fit_hard(v_tr, y_true=y_tr).predict_proba_hard(v_te, apply_temp=False)
+        ds_sup_f = VectorizedDawidSkene(smoothing=1.0).fit_hard(v_tr, y_true=y_tr)
+        p_tr_sup_f = ds_sup_f.predict_proba_hard(v_tr, apply_temp=False)
+        p_te_sup = ds_sup_f.predict_proba_hard(v_te, apply_temp=False)
+        t_sup_f = fit_temperature(p_tr_sup_f, y_tr)
+        p_tr_sup_tf = apply_temperature(p_tr_sup_f, t_sup_f)
+        p_te_sup_tf = apply_temperature(p_te_sup, t_sup_f)
         glad_te = _glad_fit_and_predict(
             tuple(inputs[r["audit_join_id"]] for r in tr),
             tuple(inputs[r["audit_join_id"]] for r in te),
@@ -249,6 +268,8 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
         tr_pids = [r["parent_id"] for r in tr]
         tau_010_f, _ = calibrate_pg_crc_threshold(p_tr_raw, tr_ctxs, tr_refs, tr_pids, alpha=0.01)
         tau_005_f, _ = calibrate_pg_crc_threshold(p_tr_raw, tr_ctxs, tr_refs, tr_pids, alpha=0.005)
+        dtau_010_f, _ = calibrate_decoupled_pg_crc_threshold(p_tr_sup_tf, tr_ctxs, tr_refs, tr_pids, alpha=0.01)
+        dtau_005_f, _ = calibrate_decoupled_pg_crc_threshold(p_tr_sup_tf, tr_ctxs, tr_refs, tr_pids, alpha=0.005)
 
         fold_posts = {
             "fixed": {r["audit_join_id"]: aggregate(inputs[r["audit_join_id"]].semantic_votes, rel, "fixed") for r in te},
@@ -258,6 +279,7 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
             "ds_raw": {r["audit_join_id"]: p_te_raw[i].tolist() for i, r in enumerate(te)},
             "ds_map_5": {r["audit_join_id"]: p_te_map5[i].tolist() for i, r in enumerate(te)},
             "ds_sup_mle": {r["audit_join_id"]: p_te_sup[i].tolist() for i, r in enumerate(te)},
+            "ds_sup_temp": {r["audit_join_id"]: p_te_sup_tf[i].tolist() for i, r in enumerate(te)},
             "ds_temp": {r["audit_join_id"]: p_te_temp[i].tolist() for i, r in enumerate(te)},
             "bayes_oracle": {r["audit_join_id"]: p_te_oracle[i].tolist() for i, r in enumerate(te)},
         }
@@ -267,8 +289,12 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
                 rf = lambda r, p, c: route_risk(p, c)
             elif rmode == "pg_crc_010":
                 rf = lambda r, p, c, t=tau_010_f: route_pg_crc(p, c, t)
-            else:
+            elif rmode == "pg_crc_005":
                 rf = lambda r, p, c, t=tau_005_f: route_pg_crc(p, c, t)
+            elif rmode == "dec_pg_crc_005":
+                rf = lambda r, p, c, t=dtau_005_f: route_decoupled_pg_crc(p, c, t, defer_cost=0.5)
+            else:
+                rf = lambda r, p, c, t=dtau_010_f: route_decoupled_pg_crc(p, c, t, defer_cost=2.0)
             cv5_metrics[sid].append(_evaluate_predictions(te, targets, contexts, fold_posts[mkey], rf))
 
     out_rows = []
@@ -277,8 +303,12 @@ def run_calibration_and_pgcrc(index, targets, contexts, inputs):
             rf = lambda r, p, c: route_risk(p, c)
         elif rmode == "pg_crc_010":
             rf = lambda r, p, c: route_pg_crc(p, c, pgcrc_taus_010[r["source_dataset"]])
-        else:
+        elif rmode == "pg_crc_005":
             rf = lambda r, p, c: route_pg_crc(p, c, pgcrc_taus_005[r["source_dataset"]])
+        elif rmode == "dec_pg_crc_005":
+            rf = lambda r, p, c: route_decoupled_pg_crc(p, c, dec_taus_005[r["source_dataset"]], defer_cost=0.5)
+        else:
+            rf = lambda r, p, c: route_decoupled_pg_crc(p, c, dec_taus_010[r["source_dataset"]], defer_cost=2.0)
         s4 = _evaluate_predictions(index, targets, contexts, preds_4f[mkey], rf)
         f5 = cv5_metrics[sid]
         out_rows.append(
