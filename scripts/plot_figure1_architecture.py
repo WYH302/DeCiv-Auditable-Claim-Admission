@@ -1,4 +1,4 @@
-"""Generate publication-grade vector Figure 1 architecture diagram for DeCiv (IEEE Transactions).
+"""Generate publication-grade vector Figure 2 architecture diagram for DeCiv (IEEE Transactions).
 
 100% notation-consistent with the compsoc IEEE Transactions manuscript:
   - 3-Family 5-Model Heterogeneous Verifier Pool (NLI Encoders / Open LLMs / Frontier GPT-6.1-Sol)
@@ -108,7 +108,7 @@ def main() -> None:
     ax.text(1.25, 3.29, "(Zero metadata access)", fontsize=6.7, style="italic", color="#1F618D", ha="center", va="center", zorder=3)
 
     box(ax, 0.30, 1.43, 1.90, 1.52, fc="#FEF9E7", ec="#B7791F", lw=1.0, r=0.10, z=2)
-    ax.text(1.25, 2.76, r"Governance Vector $g_i$", fontsize=8.0, fontweight="bold", color="#7D5A00", ha="center", va="center", zorder=3)
+    ax.text(1.25, 2.76, r"Governance Vector $\mathbf{g}_i$", fontsize=8.0, fontweight="bold", color="#7D5A00", ha="center", va="center", zorder=3)
     ax.text(
         1.25, 2.13,
         "• Provenance $g^{\\mathrm{prov}}$\n• Auditability $g^{\\mathrm{aud}}$\n• Human review $g^{\\mathrm{hr}}$\n• Repairability $g^{\\mathrm{rep}}$",
@@ -137,11 +137,11 @@ def main() -> None:
 
     box(ax, 4.78, 3.30, 1.40, 1.24, fc="#FFFFFF", ec="#1F618D", lw=1.0, r=0.09, z=2)
     ax.text(5.48, 4.35, "DeCiv-CAF", fontsize=8.0, fontweight="bold", color="#1B4F72", ha="center", va="center", zorder=3)
-    ax.text(5.48, 3.85, "Simplex + Centered\nLog-Odds + Cross-\nFamily $\\phi(\\mathcal{Q}_i)$", fontsize=6.5, ha="center", va="center", linespacing=1.25, zorder=3)
+    ax.text(5.48, 3.85, "Simplex + Centered\nLog-Odds + Cross-\nFamily $\\mathbf{\\phi}(\\mathcal{Q}_i)$", fontsize=6.5, ha="center", va="center", linespacing=1.25, zorder=3)
     ax.text(5.48, 3.43, r"+ OOF TempScale $T^*$", fontsize=6.6, fontweight="bold", color="#5B2C6F", ha="center", va="center", zorder=3)
 
     box(ax, 4.78, 2.34, 1.40, 0.78, fc="#FFFFFF", ec="#1F618D", lw=0.9, r=0.08, z=2)
-    ax.text(5.48, 3.00, r"Calibrated $\hat{p}_i \in \Delta^3$", fontsize=6.9, fontweight="bold", color="#000000", ha="center", va="center", zorder=3)
+    ax.text(5.48, 3.00, r"Calibrated $\hat{\mathbf{p}}_i \in \Delta^3$", fontsize=6.9, fontweight="bold", color="#000000", ha="center", va="center", zorder=3)
     bar_cols = ["#1E8449", "#C0392B", "#D68910", "#2980B9"]
     bar_hs = [0.35, 0.08, 0.17, 0.12]
     bar_lbls = ["S", "C", "P", "I"]
@@ -163,7 +163,7 @@ def main() -> None:
 
     box(ax, 6.80, 1.43, 1.96, 1.32, fc="#FFF3CD", ec="#7D5A00", lw=1.1, r=0.10, z=2)
     ax.text(7.78, 2.55, "Hard Governance Gate", fontsize=7.8, fontweight="bold", color="#7D5A00", ha="center", va="center", zorder=3)
-    ax.text(7.78, 2.01, "Admissible Set $\\mathcal{A}_{\\mathrm{elig}}(g_i)$\nDeterministic EV = 0\n(Zero Semantic Bypass)", fontsize=6.9, ha="center", va="center", linespacing=1.35, zorder=3)
+    ax.text(7.78, 2.01, "Admissible Set $\\mathcal{A}_{\\mathrm{elig}}(\\mathbf{g}_i)$\nDeterministic EV = 0\n(Zero Semantic Bypass)", fontsize=6.9, ha="center", va="center", linespacing=1.35, zorder=3)
 
     box(ax, 6.80, 3.04, 1.96, 1.46, fc="#FFFFFF", ec="#B7791F", lw=1.05, r=0.10, z=2)
     ax.text(7.78, 4.30, "Admissibility-Projected", fontsize=7.6, fontweight="bold", color="#000000", ha="center", va="center", zorder=3)
@@ -229,8 +229,8 @@ def main() -> None:
     )
     ax.text(
         7.00, 0.33,
-        "Commits canonical receipt $m_t$ (packet hash, calibrated $\\hat{p}_i$, $\\mathcal{A}_{\\mathrm{elig}}$, action $\\hat{a}_i$, and revise→accept lineage pointer) for EVERY packet  •  52.3 µs/proof (3,125× compression at N=50k)",
-        fontsize=6.85, color="#1F2937", ha="center", va="center", zorder=3,
+        "Commits canonical receipt $m_t$ (packet hash, calibrated $\\hat{\\mathbf{p}}_i$, $\\mathcal{A}_{\\mathrm{elig}}$, action $\\hat{a}_i$, and revise→accept lineage pointer) for EVERY packet  •  52.3 µs/proof (3,125× compression at N=50k)",
+        fontsize=6.85, color="#000000", ha="center", va="center", zorder=3,
     )
 
     # =========================================================================
@@ -238,7 +238,7 @@ def main() -> None:
     # =========================================================================
     arrow(ax, 2.23, 3.82, 2.65, 3.82, color="#1F618D", lw=1.6, ms=13)
     arrow(ax, 2.23, 1.88, 6.77, 1.88, color="#B7791F", lw=1.65, ms=13)
-    ax.text(4.50, 2.02, r"Isolated Governance Channel $g_i$ (Bypassing Stage I)", fontsize=7.0, fontweight="bold", color="#7D5A00", ha="center", va="center", zorder=4)
+    ax.text(4.50, 2.02, r"Isolated Governance Channel $\mathbf{g}_i$ (Bypassing Stage I)", fontsize=7.0, fontweight="bold", color="#7D5A00", ha="center", va="center", zorder=4)
 
     arrow(ax, 6.35, 3.74, 6.77, 3.74, color="#1F618D", lw=1.6, ms=13)
     arrow(ax, 10.51, 4.33, 10.93, 4.33, color="#1E8449", lw=1.65, ms=13)
